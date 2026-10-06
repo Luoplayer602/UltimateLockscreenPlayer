@@ -7,8 +7,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface ULPLockScreenView : UIView
 @property (nonatomic, copy, nullable) void (^commandHandler)(NSInteger command);
+@property (nonatomic, copy, nullable) void (^artworkHandler)(UIImage * _Nullable artwork);
 - (void)updateNowPlaying:(ULPNowPlayingSnapshot *)snapshot;
-- (void)updateAudio:(ULPMSH2FeatureFrame)frame zoomLevel:(float)zoomLevel;
 @end
 
 NS_ASSUME_NONNULL_END

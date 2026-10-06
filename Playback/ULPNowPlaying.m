@@ -2,6 +2,9 @@
 
 #import <dlfcn.h>
 #import <dispatch/dispatch.h>
+#import <mach/mach_time.h>
+
+#import "ULPProgressClock.h"
 
 typedef void (*ULPMRGetInfo)(dispatch_queue_t, void (^)(CFDictionaryRef));
 typedef void (*ULPMRGetPlaying)(dispatch_queue_t, void (^)(Boolean));
@@ -33,6 +36,8 @@ typedef Boolean (*ULPMRSendCommand)(NSInteger, NSDictionary *);
     dispatch_source_t _timer;
     uint64_t _generation;
     BOOL _running;
+    ULPProgressClock _progressClock;
+    NSString *_progressTrackKey;
 }
 @property (nonatomic, copy) ULPNowPlayingHandler handler;
 @end
@@ -81,12 +86,31 @@ typedef Boolean (*ULPMRSendCommand)(NSInteger, NSDictionary *);
         if ([self->_artworkController respondsToSelector:@selector(stopUpdating)])
             [self->_artworkController stopUpdating];
         self->_artworkController = nil;
+        self->_progressTrackKey = nil;
+        ULPProgressClockReset(&self->_progressClock);
     });
 }
 
 - (id)valueForSymbol:(const char *)symbol inInfo:(NSDictionary *)info {
     CFStringRef *key = (CFStringRef *)dlsym(_framework, symbol);
     return key && *key ? info[(__bridge NSString *)*key] : nil;
+}
+
+- (void)deliverSnapshot:(ULPNowPlayingSnapshot *)snapshot {
+    NSString *trackKey = [NSString stringWithFormat:@"%d|%@|%@|%.3f",
+                          snapshot.processID, snapshot.title ?: @"",
+                          snapshot.artist ?: @"", snapshot.duration];
+    if (![_progressTrackKey isEqualToString:trackKey]) {
+        _progressTrackKey = trackKey;
+        ULPProgressClockReset(&_progressClock);
+    }
+    static mach_timebase_info_data_t timebase;
+    if (!timebase.denom) mach_timebase_info(&timebase);
+    double now = (double)mach_absolute_time() * timebase.numer /
+                 timebase.denom / 1000000000.0;
+    snapshot.elapsed = ULPProgressClockUpdate(&_progressClock, snapshot.elapsed,
+                                               snapshot.duration, snapshot.playing, now);
+    if (self.handler) self.handler(snapshot);
 }
 
 - (void)refresh {
@@ -133,9 +157,9 @@ typedef Boolean (*ULPMRSendCommand)(NSInteger, NSDictionary *);
                 self->_getPID(dispatch_get_main_queue(), ^(int pid) {
                     if (!self->_running || generation != self->_generation) return;
                     snapshot.processID = pid;
-                    if (self.handler) self.handler(snapshot);
+                    [self deliverSnapshot:snapshot];
                 });
-            } else if (self.handler) self.handler(snapshot);
+            } else [self deliverSnapshot:snapshot];
         });
     });
 }

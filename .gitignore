@@ -3,10 +3,15 @@ packages/
 Tests/MSH2ProtocolTests
 Tests/LifecycleTests
 Tests/SignalTests
+Tests/ProgressClockTests
 *.deb
 *.dylib
 *.o
 REQUIREMENTS_PLAN.md
 IMPLEMENTATION_PLAN.md
+Kỹ-thuật-can-thiệp-SpringBoard-iOS.docx
+Kỹ-thuật-can-thiệp-SpringBoard-iOS.docx:Zone.Identifier
 demo-ui/audio/*
 !demo-ui/audio/.gitkeep
+demo-ui/Visualizer editor _ Music Visualizer Lab.html*
+demo-ui/Visualizer editor _ Music Visualizer Lab_files/

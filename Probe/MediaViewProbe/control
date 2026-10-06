@@ -1,0 +1,9 @@
+Package: com.luoplayer.ulpmediaviewprobe
+Name: ULP Media View Probe
+Version: 0.1.0
+Architecture: iphoneos-arm64
+Description: Tam thoi doc cau truc trinh phat man hinh khoa iOS 15.
+Maintainer: luoplayer
+Author: luoplayer
+Section: Development
+Depends: mobilesubstrate, firmware (>= 15.0)
