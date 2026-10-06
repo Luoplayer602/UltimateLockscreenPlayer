@@ -1,0 +1,6 @@
+.theos/
+packages/
+*.deb
+*.dylib
+*.o
+REQUIREMENTS_PLAN.md
