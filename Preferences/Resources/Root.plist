@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+    <key>title</key><string>ULP</string>
+    <key>items</key><array>
+        <dict>
+            <key>cell</key><string>PSGroupCell</string>
+            <key>label</key><string>UltimateLockscreenPlayer</string>
+            <key>footerText</key><string>Bản thử M1: công tắc chỉ bật bộ lấy mẫu âm thanh. Sau khi thay đổi, hãy respring để áp dụng.</string>
+        </dict>
+        <dict>
+            <key>cell</key><string>PSSwitchCell</string>
+            <key>label</key><string>Enabled</string>
+            <key>defaults</key><string>com.luoplayer.ultimatelockscreenplayer</string>
+            <key>key</key><string>Enabled</string>
+            <key>default</key><false/>
+        </dict>
+    </array>
+</dict></plist>

@@ -1,6 +1,12 @@
 .theos/
 packages/
+Tests/MSH2ProtocolTests
+Tests/LifecycleTests
+Tests/SignalTests
 *.deb
 *.dylib
 *.o
 REQUIREMENTS_PLAN.md
+IMPLEMENTATION_PLAN.md
+demo-ui/audio/*
+!demo-ui/audio/.gitkeep

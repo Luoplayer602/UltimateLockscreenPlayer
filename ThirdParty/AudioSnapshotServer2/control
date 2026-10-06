@@ -1,0 +1,10 @@
+Package: com.ryannair05.audiosnapshotserver2
+Name: AudioSnapshotServer 2 (ULP mono fix)
+Version: 2.1.1+ulp1
+Architecture: iphoneos-arm64
+Description: AudioSnapshotServer2 with mono non-interleaved iOS 15 capture fix.
+Maintainer: luoplayer
+Author: Ryan Nair; mono fix by luoplayer
+Section: Development
+Depends: mobilesubstrate, firmware (>= 15.0)
+Breaks: com.ryannair05.libmitsuha6 (<< 2.0.0)

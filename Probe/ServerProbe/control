@@ -1,0 +1,9 @@
+Package: com.luoplayer.ulpserverprobe
+Name: ULP Audio Server Probe
+Version: 0.1.2
+Architecture: iphoneos-arm64
+Description: Tam thoi kiem tra trang thai AudioSnapshotServer2 tren mediaserverd.
+Maintainer: luoplayer
+Author: luoplayer
+Section: Development
+Depends: mobilesubstrate, firmware (>= 15.0), com.ryannair05.audiosnapshotserver2 (>= 2.0.0)

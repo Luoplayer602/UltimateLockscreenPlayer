@@ -1,0 +1,9 @@
+Package: com.luoplayer.ultimatelockscreenplayer
+Name: UltimateLockscreenPlayer
+Version: 0.1.0
+Architecture: iphoneos-arm64
+Description: Khung tweak man hinh khoa cho iOS 15.
+Maintainer: luoplayer
+Author: luoplayer
+Section: Tweaks
+Depends: mobilesubstrate, firmware (>= 15.0)

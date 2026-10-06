@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ULP — Demo UI</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="workspace">
+    <section class="controls" aria-label="Điều khiển demo">
+      <div class="brand"><span class="brand-mark">◉</span><div><strong>ULP</strong><small>Demo preset Player 01</small></div></div>
+      <h1>Thử giao diện<br>màn hình khóa</h1>
+      <p class="intro">Nạp nhạc và artwork của bạn. Hai nhánh tiến trình đi từ cạnh trái quanh mép trên/dưới và gặp nhau ở cạnh phải.</p>
+
+      <label class="field-label" for="audioFiles">Nhạc thử</label>
+      <input id="audioFiles" type="file" accept="audio/*" multiple>
+      <p class="hint">Bài mặc định: <code>demo-ui/audio/inst.wav</code>. Bạn vẫn có thể chọn tệp khác để thử.</p>
+
+      <label class="field-label" for="artworkFile">Artwork</label>
+      <input id="artworkFile" type="file" accept="image/*">
+
+      <label class="field-label" for="backgroundMode">Kiểu nền</label>
+      <select id="backgroundMode">
+        <option value="radian">Radian — biến dạng + blur</option>
+        <option value="static">Artwork tĩnh</option>
+      </select>
+
+      <label class="field-label" for="visualMode">Visualizer</label>
+      <select id="visualMode">
+        <option value="circle">Circle</option>
+        <option value="bar">Bar</option>
+        <option value="line">Line</option>
+        <option value="dot">Dot</option>
+        <option value="siri">Siri</option>
+        <option value="wave">Wave</option>
+      </select>
+
+      <label class="field-label" for="points">Points <output id="pointsValue" for="points">64</output></label>
+      <input id="points" type="range" min="12" max="128" step="4" value="64">
+
+      <label class="field-label" for="animationScale">Animation scale <output id="animationScaleValue" for="animationScale">6%</output></label>
+      <input id="animationScale" type="range" min="0" max="30" step="1" value="6">
+
+      <label class="field-label" for="frequencyBand">Dải âm cho visualizer</label>
+      <select id="frequencyBand">
+        <option value="drum">Trống · 40–160 Hz</option>
+        <option value="bass">Bass · 20–250 Hz</option>
+        <option value="mid">Trung · 250–2.000 Hz</option>
+        <option value="high">Cao · 2.000–8.000 Hz</option>
+        <option value="full" selected>Toàn dải · 20–8.000 Hz</option>
+      </select>
+
+      <label class="field-label" for="zoomBand">Dải âm điều khiển zoom</label>
+      <select id="zoomBand">
+        <option value="drum">Trống · 40–160 Hz</option>
+        <option value="bass">Bass · 20–250 Hz</option>
+        <option value="mid">Trung · 250–2.000 Hz</option>
+        <option value="high">Cao · 2.000–8.000 Hz</option>
+        <option value="full">Toàn dải · 20–8.000 Hz</option>
+      </select>
+
+      <label class="field-label" for="symmetry">Đối xứng</label>
+      <select id="symmetry">
+        <option value="none">Tắt</option>
+        <option value="vertical" selected>Theo trục dọc</option>
+        <option value="horizontal">Theo trục ngang</option>
+        <option value="both">Hai trục</option>
+      </select>
+
+      <label class="check-row"><input id="autoColor" type="checkbox" checked> Màu tự động từ artwork</label>
+      <div class="color-grid" aria-label="Màu thủ công">
+        <label>Màu 1 <input id="color1" type="color" value="#ffe6be"></label>
+        <label>Màu 2 <input id="color2" type="color" value="#e7bbef"></label>
+        <label>Màu 3 <input id="color3" type="color" value="#92d7ef"></label>
+      </div>
+
+      <label class="field-label" for="offsetX">Offset X <output id="offsetXValue" for="offsetX">0 px</output></label>
+      <input id="offsetX" type="range" min="-80" max="80" step="1" value="0">
+      <label class="field-label" for="offsetY">Offset Y <output id="offsetYValue" for="offsetY">0 px</output></label>
+      <input id="offsetY" type="range" min="-80" max="80" step="1" value="0">
+
+      <label class="field-label" for="fps">FPS <output id="fpsValue" for="fps">60</output></label>
+      <input id="fps" type="range" min="15" max="60" step="5" value="60">
+
+      <label class="field-label" for="blurAmount">Blur nền radian <output id="blurAmountValue" for="blurAmount">48 px</output></label>
+      <input id="blurAmount" type="range" min="16" max="80" step="2" value="48">
+      <label class="field-label" for="staticDim">Dim nền artwork tĩnh <output id="staticDimValue" for="staticDim">40%</output></label>
+      <input id="staticDim" type="range" min="0" max="75" step="5" value="40">
+      <label class="field-label" for="morphSpeed">Chu kỳ biến dạng <output id="morphSpeedValue" for="morphSpeed">11 s</output></label>
+      <input id="morphSpeed" type="range" min="3" max="20" step="1" value="11">
+
+      <label class="check-row"><input id="showThumbnail" type="checkbox" checked> Hiện thumbnail trong Player</label>
+      <label class="check-row"><input id="beatZoom" type="checkbox" checked> Zoom visualizer và nền theo dải zoom</label>
+      <p class="hint">Thay đổi thông số được áp dụng vào preview sau 1 giây.</p>
+      <p id="status" class="status" role="status">Sẵn sàng phát inst.wav. Nhấn Play trên khung Player.</p>
+      <p class="hint">Demo chạy trong trình duyệt, chưa phản ánh hook và hiệu năng trên iPhone 6s.</p>
+    </section>
+
+    <section class="stage" aria-label="Xem trước màn hình khóa">
+      <div class="phone">
+        <div class="screen" id="screen">
+          <div class="wallpaper-fallback"></div>
+          <div class="artwork-zoom" id="artworkZoom"><div class="artwork-background artwork-a" id="backgroundA"></div></div>
+          <div class="screen-vignette"></div>
+
+          <div class="status-bar" aria-hidden="true"><span>●●● ▰</span><span>9:41</span><span>▰ 100%</span></div>
+
+          <div class="visualizer-wrap" id="visualizerWrap">
+            <div class="visualizer-halo"></div>
+            <canvas id="visualizer" aria-label="Visualizer phản ứng với nhạc"></canvas>
+            <span class="visualizer-center">ULP</span>
+          </div>
+
+          <div class="player" id="player">
+            <svg class="progress-border" viewBox="0 0 390 156" preserveAspectRatio="none" aria-hidden="true">
+              <path class="progress-track" d="M 1 78 V 21 Q 1 1 21 1 H 369 Q 389 1 389 21 V 78"></path>
+              <path class="progress-track" d="M 1 78 V 135 Q 1 155 21 155 H 369 Q 389 155 389 135 V 78"></path>
+              <path id="progressGlowTop" class="progress-glow" d="M 1 78 V 21 Q 1 1 21 1 H 369 Q 389 1 389 21 V 78" pathLength="100"></path>
+              <path id="progressGlowBottom" class="progress-glow" d="M 1 78 V 135 Q 1 155 21 155 H 369 Q 389 155 389 135 V 78" pathLength="100"></path>
+              <path id="progressLineTop" class="progress-line" d="M 1 78 V 21 Q 1 1 21 1 H 369 Q 389 1 389 21 V 78" pathLength="100"></path>
+              <path id="progressLineBottom" class="progress-line" d="M 1 78 V 135 Q 1 155 21 155 H 369 Q 389 155 389 135 V 78" pathLength="100"></path>
+            </svg>
+            <div class="thumb" id="thumb"><span>♪</span></div>
+            <div class="player-content">
+              <div class="song-topline"><span class="eyebrow">NOW PLAYING</span><span id="timeLabel">0:00 / 0:00</span></div>
+              <div class="song-title" id="songTitle">inst</div>
+              <div class="song-artist" id="songArtist">Bài mẫu</div>
+              <div class="transport">
+                <button id="prevButton" type="button" aria-label="Bài trước hoặc phát lại">◀◀</button>
+                <button id="playButton" class="play-button" type="button" aria-label="Phát">▶</button>
+                <button id="nextButton" type="button" aria-label="Bài sau hoặc phát lại">▶▶</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="bottom-actions" aria-hidden="true"><span>◉</span><span>◌</span></div>
+          <div class="home-indicator" aria-hidden="true"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <audio id="audio" preload="metadata" src="audio/inst.wav"></audio>
+  <script src="app.js"></script>
+</body>
+</html>
