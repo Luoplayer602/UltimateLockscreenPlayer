@@ -1,0 +1,14 @@
+<!doctype html><meta charset="utf-8"><title>ULP renderer fixtures</title>
+<style>body{margin:24px;background:#0b0d14;color:#ddd;font:14px system-ui}main{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}section{min-width:0;background:#151a27;border-radius:14px;overflow:hidden}h2{font-size:14px;margin:12px}canvas{display:block;width:100%}p{color:#999}</style>
+<h1>ULP · Renderer fixtures</h1><p>Fixed signed waveform and asymmetric spectrum input. Open the demo for live audio.</p><main id="gallery"></main>
+<script src="../audio-response.js"></script><script src="../renderer.js"></script><script src="../settings-schema.js"></script>
+<script>
+const input={spectrum:Float32Array.from({length:128},(_,i)=>.14+.58*Math.exp(-i/90)*Math.abs(Math.sin(i*.14+.6))),wave:Float32Array.from({length:128},(_,i)=>.15*Math.sin(i*.27)+.06*Math.sin(i*.76)+.045*Math.sin(i*1.2)),raw:.22,beatPulse:0,lastBeatAt:-Infinity,beatCount:0,time:4,playing:true};
+for(const [mode,spec] of Object.entries(modeSpecs)) {
+ const card=document.createElement('section'),title=document.createElement('h2'),preview=document.createElement('canvas');title.textContent=spec.label;preview.width=400;preview.height=300;card.append(title,preview);gallery.append(card);
+ const scene=document.createElement('canvas'),renderer=new ULPRenderer.SceneRenderer(scene);
+ const p=Object.fromEntries([...spec.fields,...Object.values(shared).flat()].map(f=>[f.id,f.value]));
+ p.backgroundColour1='#161c2a';p.backgroundColour2='#0c1019';p.colourMode='solid';p.colour1='#66aaff';p.beatReaction=0;p.coverSize=.34;
+ renderer.render(mode,p,input,.016,true,4);renderer.copyPreview(preview);
+}
+</script>

@@ -10,6 +10,7 @@
 #import "Playback/ULPLifecycle.h"
 #import "Playback/ULPNowPlaying.h"
 #import "Visualization/ULPSignal.h"
+#import "Visualization/ULPVisualPreferences.h"
 #import "UI/ULPLockScreenView.h"
 #import "UI/ULPBackgroundView.h"
 #import "UI/ULPVisualizerView.h"
@@ -18,6 +19,8 @@ static ULPMSH2Client *gAudioProbe;
 static ULPNowPlaying *gNowPlaying;
 static ULPLifecycle gLifecycle;
 static ULPSignalState gSignal;
+static ULPVisualConfig gVisualConfig;
+static UIColor *gVisualManualColor;
 static __weak ULPLockScreenView *gPlayer;
 static __weak ULPBackgroundView *gBackground;
 static __weak ULPBackgroundView *gFixedBackground;
@@ -33,6 +36,23 @@ static char kULPOriginalListInsetKey;
 static char kULPReplacementKey;
 
 static void ULPDiagnosticLog(NSString *message);
+
+static CFPropertyListRef ULPPreference(CFStringRef key) {
+    return CFPreferencesCopyAppValue(key, CFSTR("com.luoplayer.ultimatelockscreenplayer"));
+}
+
+
+
+
+
+static BOOL ULPPreferenceBool(CFStringRef key, BOOL fallback) {
+    CFPropertyListRef value = ULPPreference(key);
+    BOOL result = fallback;
+    if (value && CFGetTypeID(value) == CFBooleanGetTypeID())
+        result = CFBooleanGetValue((CFBooleanRef)value);
+    if (value) CFRelease(value);
+    return result;
+}
 
 @interface CSCoverSheetViewController : UIViewController
 - (BOOL)authenticated;
@@ -156,7 +176,7 @@ static void ULPRefreshPresentation(void) {
     gFixedBackground.hidden = !active;
     gBackground.hidden = !active;
     if (!active) [gBackground resetMotion];
-    gVisualizer.hidden = !active;
+    gVisualizer.hidden = !active || !gVisualConfig.enabled;
     gPlayer.hidden = !active;
     ULPManageMediaAlpha(gMediaView, active, 0.001);
     UIView *platter = gMediaView.superview.superview;
@@ -198,6 +218,8 @@ static BOOL ULPIsInsideCoverSheet(UIView *view) {
     [background attachSwipeRecognitionToView:self.view];
     gBackground = background;
     ULPVisualizerView *visualizer = [[ULPVisualizerView alloc] initWithFrame:self.view.bounds];
+    visualizer.visualConfig = gVisualConfig;
+    [visualizer setArtwork:nil manualColor:gVisualManualColor];
     visualizer.hidden = YES;
     [self.view insertSubview:visualizer aboveSubview:background];
     gVisualizer = visualizer;
@@ -288,6 +310,7 @@ static BOOL ULPIsInsideCoverSheet(UIView *view) {
         replacement.artworkHandler = ^(UIImage *artwork) {
             [gBackground setArtwork:artwork];
             [gFixedBackground setRenderedArtwork:gBackground.renderedArtwork];
+            [gVisualizer setArtwork:artwork manualColor:gVisualManualColor];
         };
         objc_setAssociatedObject(self, &kULPReplacementKey, replacement,
                                  OBJC_ASSOCIATION_RETAIN_NONATOMIC);
@@ -336,16 +359,20 @@ static void ULPDiagnosticLog(NSString *message) {
 %ctor {
     @autoreleasepool {
         ULPDiagnosticLog(@"SpringBoard tweak loaded");
-        CFPropertyListRef value = CFPreferencesCopyAppValue(
-            CFSTR("Enabled"), CFSTR("com.luoplayer.ultimatelockscreenplayer"));
-        BOOL enabled = value && CFGetTypeID(value) == CFBooleanGetTypeID() &&
-                       CFBooleanGetValue((CFBooleanRef)value);
-        if (value) CFRelease(value);
+        BOOL enabled = ULPPreferenceBool(CFSTR("Enabled"), NO);
         if (!enabled) return;
         gEnabled = YES;
 
         ULPLifecycleInit(&gLifecycle, 15000);
         ULPSignalInit(&gSignal);
+        gVisualConfig = ULPLoadVisualPreferences();
+        gVisualManualColor = ULPLoadVisualManualColor();
+        gSignal.visual.firstBand = gVisualConfig.firstBand;
+        gSignal.visual.lastBand = gVisualConfig.lastBand;
+        gSignal.zoom.firstBand = gVisualConfig.zoomFirstBand;
+        gSignal.zoom.lastBand = gVisualConfig.zoomLastBand;
+        if (gSignal.zoom.lastBand < gSignal.zoom.firstBand)
+            gSignal.zoom.lastBand = gSignal.zoom.firstBand;
         gNowPlaying = [[ULPNowPlaying alloc] initWithHandler:^(ULPNowPlayingSnapshot *snapshot) {
             static BOOL lastArtwork;
             ULPPlaybackPresentation previous = gLifecycle.presentation;

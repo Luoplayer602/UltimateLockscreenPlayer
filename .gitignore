@@ -4,6 +4,7 @@ Tests/MSH2ProtocolTests
 Tests/LifecycleTests
 Tests/SignalTests
 Tests/ProgressClockTests
+Tests/VisualConfigTests
 *.deb
 *.dylib
 *.o

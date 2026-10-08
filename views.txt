@@ -1,0 +1,2 @@
+MRUNowPlayingView: 0x13b00e810; frame = (0 0; 355 282)
+

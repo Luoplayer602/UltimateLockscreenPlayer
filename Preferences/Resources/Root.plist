@@ -5,8 +5,7 @@
     <key>items</key><array>
         <dict>
             <key>cell</key><string>PSGroupCell</string>
-            <key>label</key><string>UltimateLockscreenPlayer</string>
-            <key>footerText</key><string>Bản thử M1: công tắc chỉ bật bộ lấy mẫu âm thanh. Sau khi thay đổi, hãy respring để áp dụng.</string>
+            <key>label</key><string>TWEAK ENABLED</string>
         </dict>
         <dict>
             <key>cell</key><string>PSSwitchCell</string>
@@ -14,6 +13,25 @@
             <key>defaults</key><string>com.luoplayer.ultimatelockscreenplayer</string>
             <key>key</key><string>Enabled</string>
             <key>default</key><false/>
+        </dict>
+        <dict>
+            <key>cell</key><string>PSGroupCell</string>
+            <key>label</key><string>SETTINGS</string>
+        </dict>
+        <dict>
+            <key>cell</key><string>PSLinkCell</string>
+            <key>label</key><string>Visualizer</string>
+            <key>detail</key><string>ULPVisualizerListController</string>
+        </dict>
+        <dict>
+            <key>cell</key><string>PSGroupCell</string>
+            <key>label</key><string>PROJECT</string>
+            <key>footerText</key><string>Nhấn Apply ở góc trên để Respring và áp dụng thay đổi trên màn hình khóa.</string>
+        </dict>
+        <dict>
+            <key>cell</key><string>PSButtonCell</string>
+            <key>label</key><string>GitHub · luoplayer602</string>
+            <key>buttonAction</key><string>openGitHub</string>
         </dict>
     </array>
 </dict></plist>

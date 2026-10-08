@@ -1,4 +1,4 @@
-#import <Preferences/PSListController.h>
+#import "ULPSettingsListController.h"
 
-@interface ULPRootListController : PSListController
+@interface ULPRootListController : ULPSettingsListController
 @end

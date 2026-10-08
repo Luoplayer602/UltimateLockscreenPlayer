@@ -1,0 +1,75 @@
+<!doctype html><meta charset="utf-8"><title>ULP browser validation</title>
+<style>body{background:#10131b;color:#edf1ff;font:14px monospace}iframe{width:1200px;height:900px;border:0}#results{white-space:pre-wrap}</style>
+<pre id="results">RUNNING</pre><iframe id="demo" src="../index.html?test"></iframe>
+<script>
+const reports=[];const check=(name,ok)=>{reports.push(`${ok?'PASS':'FAIL'} ${name}`);document.getElementById('results').textContent=reports.join('\n');};
+document.getElementById('demo').onload=()=>{
+ const win=document.getElementById('demo').contentWindow;
+ win.addEventListener('error',e=>check('runtime '+e.message,false));
+ try {
+  const output=win.eval(`(()=>{
+   cancelAnimationFrame(rafId);
+   const results=[];const test=(name,ok)=>results.push([name,Boolean(ok)]);
+   const render=sceneRenderer; const modeList=Object.keys(modeSpecs);
+   const hash=canvas=>{const d=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;let h=2166136261;for(let i=0;i<d.length;i++)h=Math.imul(h^d[i],16777619);return h>>>0;};
+   const baseFrame={spectrum:Float32Array.from({length:128},(_,i)=>.12+.7*Math.exp(-i/80)*Math.abs(Math.sin(i*.17+.7))),wave:Float32Array.from({length:128},(_,i)=>.2*Math.sin(i*.37)+.09*Math.cos(i*.81)),raw:.4,beatPulse:.8,lastBeatAt:1,beatCount:1,time:1.12,playing:true};
+   for(const mode of modeList){
+    design.mode=mode;const p=profile();syncDesign();
+    render.clearHistory();render.render(mode,p,baseFrame,.016,true,1.12);const active=hash(canvas);
+    render.render(mode,p,processor.idle(1.12),.016,true,1.12);test(mode+' reacts to PCM/spectrum',hash(canvas)!==active);
+   }
+   design.mode='waveform';syncDesign();
+   fakeHome.click();setPage('visualizer');settingsScroll.scrollTop=400;
+   for(const [id,value] of [['visualReactType','beat'],['coverReactType','raw'],['colourMode','gradient'],['colour1','#ff8800']]){
+    const el=settingsScroll.querySelector('[data-field="'+id+'"]');el.value=value;el.dispatchEvent(new Event('change',{bubbles:true}));test(id+' keeps scroll',settingsScroll.scrollTop===400);
+   }
+   test('Raw disables Beat motion',settingsScroll.querySelector('[data-field="beatMotion"]').disabled);
+   test('Voice and Melody removed',![...settingsScroll.querySelectorAll('option')].some(x=>['voice','melody'].includes(x.value)));
+   const p=profile();p.coverReactType='beat';p.reactToBeat=1;p.rumble=p.drift=p.spin=0;
+   for(const motion of ['swell','flash','shake','spin','bounce','wobble']){
+    p.beatMotion=motion;const live=ULPRenderer.coverMotion(p,baseFrame,1.12),end=ULPRenderer.coverMotion(p,{...baseFrame,time:5},5),none=ULPRenderer.coverMotion(p,{...baseFrame,lastBeatAt:-Infinity},1.12);
+    test(motion+' has motion',live.scale!==1||live.flash>0||live.x!==0||live.rotation!==0);
+    test(motion+' settles',Math.abs(end.scale-1)+Math.abs(end.x)+Math.abs(end.rotation)+end.flash<.001);
+    test(motion+' no NaN before first beat',Object.values(none).every(Number.isFinite));
+   }
+   render.render('waveform',p,baseFrame,.016,true,1.12);
+   const clone=document.createElement('canvas');clone.width=400;clone.height=720;render.copyPreview(clone,true);test('full preview pixel-identical to lockscreen scene',hash(clone)===hash(canvas));
+   const toggle=settingsScroll.querySelector('[data-global="visualEnabled"]');const beforeToggle=design.visualEnabled;toggle.click();test('toggle applies without jumping',design.visualEnabled!==beforeToggle&&settingsScroll.scrollTop===400);toggle.click();
+   const reset=settingsScroll.querySelector('[data-reset="position"]');profile().scale=1.6;reset.click();test('Reset updates profile without jumping',profile().scale===1&&settingsScroll.scrollTop===400);
+   p.coverReactType='beat';p.sensitivity=0;test('zero sensitivity stops beat motion',ULPRenderer.coverMotion(p,baseFrame,1.12).scale===1);p.sensitivity=1;
+   // Verify previously missing controls affect pixels, with their prerequisites enabled.
+   const pixel=(mode,overrides)=>{
+    const config=Object.fromEntries([...modeSpecs[mode].fields,...Object.values(shared).flat()].map(f=>[f.id,f.value]));
+    Object.assign(config,{coverOpacity:0,glow:0,trail:0,colourMode:'solid',colour1:'#88aaff'},overrides);
+    render.clearHistory();render.render(mode,config,baseFrame,.016,true,1.12);return hash(canvas);
+   };
+   const cases=[
+    ['bar','mirror',false,true],['bar','reverse',false,true],['bar','cornerRadius',0,8],['bar','spacing',0,.7],['bar','growFrom','bottom','center'],['bar','peakCaps',false,true],
+    ['equalizer','growFrom','bottom','top'],['equalizer','rows',8,24],['dot','growFrom','bottom','center'],
+    ['line','mirrorVertical',false,true],['line','fill',false,true],['waveform','smoothCurve',false,true],['waveform','fill',false,true],['mirror','centreGap',0,40],['mirror','fill',false,true],
+    ['spectro','growInward',false,true],['spectro','roundedCaps',false,true],['spectro','showInnerRing',false,true],['spectro','ringOpacity',0,1],['spectro','peakCaps',false,true],['spectro','peakCapsType','line','dot',{peakCaps:true}],['spectro','hideVisual',false,true,{peakCaps:true}],['spectro','rotationSpeed',0,60],['spectro','symmetry',1,4],
+    ['circularWaveform','fill',false,true],['circularWaveform','thickness',1,6],['smoothSpectro','fill',false,true],['smoothSpectro','size',.2,.6],['smoothSpectro','reactivity',0,1],
+    ['waveform','gradientAngle',0,90,{colourMode:'gradient',colour1:'#ff4400',colour2:'#0088ff'}],['waveform','visualBlur',0,8],['waveform','opacity',0,1],['waveform','scale',.7,1.6],['waveform','flipVertical',false,true],['waveform','flipHorizontal',false,true]
+   ];
+   for(const [mode,key,a,b,extra={}] of cases)test(mode+' / '+key+' changes pixels',pixel(mode,{...extra,[key]:a})!==pixel(mode,{...extra,[key]:b}));
+   // A trail must retain past geometry after it moves, and clear when switched off.
+   const trailProfile=Object.fromEntries([...modeSpecs.waveform.fields,...Object.values(shared).flat()].map(f=>[f.id,f.value]));
+   Object.assign(trailProfile,{trail:1,coverOpacity:0,glow:0});
+   render.clearHistory();render.render('waveform',{...trailProfile,horizontalPosition:-60},baseFrame,.016,true,1.12);
+   render.render('waveform',{...trailProfile,horizontalPosition:60},{...baseFrame,time:1.14},.02,true,1.14);
+   const retained=hash(render.history);render.render('waveform',{...trailProfile,trail:0,horizontalPosition:60},{...baseFrame,time:1.14},.02,true,1.14);
+   test('Trail retains previous geometry',hash(render.history)!==retained);
+   render.clearHistory();
+   Object.assign(trailProfile,{fill:true,fillOpacity:.2});
+   render.render('waveform',trailProfile,baseFrame,.016,true,1.12);const once=hash(render.history);
+   for(let i=0;i<25;i++)render.render('waveform',trailProfile,baseFrame,.016,true,1.12);
+   test('Trail does not brighten stationary translucent shapes',hash(render.history)===once);
+   const savedMode=design.mode;design.mode='spectro';profile().visualReactType='voice';profile().coverReactType='melody';const migrated=profile();test('legacy detector migration',migrated.visualReactType==='raw'&&migrated.coverReactType==='beat');design.mode=savedMode;
+   syncDesign();setPage('visualizer');
+   return results;
+  })()`);
+  output.forEach(([name,ok])=>check(name,ok));
+ }catch(error){check('exception '+error.stack,false);}
+ document.body.dataset.result=reports.some(x=>x.startsWith('FAIL'))?'FAIL':'PASS';
+};
+</script>
