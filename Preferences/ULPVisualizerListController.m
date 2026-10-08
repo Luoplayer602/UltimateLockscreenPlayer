@@ -116,43 +116,54 @@
     if (!_specifiers) {
         ULPMigrateVisualPreferences();
         _loadedMode = ULPLoadVisualPreferences().mode;
-        NSArray *all = [self loadSpecifiersFromPlistName:@"Visualizer" target:self];
-        // Preferences does not preserve every custom plist key on all iOS versions.
-        // Restore our metadata from the bundled source before filtering or creating cells.
         NSString *path = [[NSBundle bundleForClass:self.class] pathForResource:@"Visualizer" ofType:@"plist"];
         NSArray *items = [NSDictionary dictionaryWithContentsOfFile:path][@"items"];
-        if (items.count != all.count) {
-            [self recordPreviewIssue:@"Visualizer plist/specifier count mismatch"];
-            return @[];
+        NSMutableDictionary *definitions = [NSMutableDictionary dictionary];
+        for (NSDictionary *item in items) {
+            if (item[@"id"]) definitions[item[@"id"]] = item;
         }
+        NSArray *loaded = [self loadSpecifiersFromPlistName:@"Visualizer" target:self];
         _specifiers = [NSMutableArray array];
-        NSUInteger index = 0;
-        for (PSSpecifier *specifier in all) {
-            NSDictionary *item = items[index++];
-            for (NSString *property in item) {
-                if ([property hasPrefix:@"ulp"] || [property isEqualToString:@"buttonAction"])
-                    [specifier setProperty:item[property] forKey:property];
+        for (PSSpecifier *specifier in loaded) {
+            // Match stable IDs, never array indexes: Preferences may transform its input.
+            NSDictionary *item = definitions[specifier.identifier ?: @""];
+            if (!item) {
+                [self recordPreviewIssue:[NSString stringWithFormat:@"Missing definition: %@", specifier.identifier]];
+                continue;
             }
             NSArray *modes = item[@"ulpModes"];
             if (modes && ![modes containsObject:@(_loadedMode)]) continue;
-            NSString *key = [specifier propertyForKey:@"key"];
+            for (NSString *property in item) {
+                if ([property hasPrefix:@"ulp"])
+                    [specifier setProperty:item[property] forKey:property];
+            }
+            NSString *key = item[@"key"];
             if (key) {
                 [specifier setProperty:key forKey:@"ulpOriginalKey"];
                 [specifier setProperty:ULPVisualPreferenceKey(key, _loadedMode) forKey:@"key"];
             }
-            // PSButtonCell dispatches buttonAction, not the generic action key.
             NSString *buttonAction = item[@"buttonAction"];
             if (specifier.cellType == PSButtonCell && buttonAction.length) {
                 specifier.target = self;
                 specifier.buttonAction = NSSelectorFromString(buttonAction);
             }
-            if ([buttonAction isEqualToString:@"openModes"])
+            if ([specifier.identifier isEqualToString:@"ULPModePicker"])
                 specifier.name = [@"Modes · " stringByAppendingString:ULPModeTitle(_loadedMode)];
             [_specifiers addObject:specifier];
         }
         [self updateDependencies:NO];
     }
     return _specifiers;
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    PSSpecifier *specifier = [self specifierAtIndexPath:indexPath];
+    if ([specifier.identifier isEqualToString:@"ULPModePicker"]) {
+        [tableView deselectRowAtIndexPath:indexPath animated:YES];
+        [self openModes];
+        return;
+    }
+    [super tableView:tableView didSelectRowAtIndexPath:indexPath];
 }
 
 - (void)openModes {
@@ -182,6 +193,7 @@
         CFSTR("com.luoplayer.ultimatelockscreenplayer"));
     CFPreferencesAppSynchronize(CFSTR("com.luoplayer.ultimatelockscreenplayer"));
     [self updateDependencies:YES];
+    [_stickyPreview refreshVisualPreferences];
 }
 
 - (void)updateDependencies:(BOOL)reload {
@@ -209,8 +221,12 @@
         CFPreferencesSetAppValue((__bridge CFStringRef)ULPVisualPreferenceKey(key, _loadedMode),
                                  NULL, CFSTR("com.luoplayer.ultimatelockscreenplayer"));
     CFPreferencesAppSynchronize(CFSTR("com.luoplayer.ultimatelockscreenplayer"));
+    CGPoint offset = [self settingsTable].contentOffset;
     _specifiers = nil;
     [self reloadSpecifiers];
+    [[self settingsTable] layoutIfNeeded];
+    [[self settingsTable] setContentOffset:offset animated:NO];
+    [_stickyPreview refreshVisualPreferences];
 }
 
 @end

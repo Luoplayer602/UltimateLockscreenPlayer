@@ -18,6 +18,7 @@
 .settings-screen[data-page="modes"] .settings-scroll { top: 299px; }
 .settings-screen[data-page="preview"] .settings-preview-host { height: 479px; }
 .settings-screen[data-page="preview"] .settings-scroll { top: 584px; }
+.settings-screen[data-page="lyricsPreset"] .settings-scroll { top: 340px; }
 .setting-section { margin: 28px 0 31px; }
 .setting-section h2 { margin: 0 12px 8px; color: #898a91; font-size: 11px; letter-spacing: .05em; font-weight: 650; }
 .setting-card { border-radius: 22px; background: #1c1c1e; overflow: hidden; }
@@ -51,6 +52,8 @@
 .settings-preview-host { height: 214px; }
 .settings-screen[data-page="visualizer"] .settings-scroll, .settings-screen[data-page="modes"] .settings-scroll { top: 319px; }
 .settings-screen[data-page="preview"] .settings-preview { height: 470px; }
+.settings-screen[data-page="lyricsPreset"] .settings-preview-host { height: 235px; }
+.settings-screen[data-page="lyricsPreset"] .settings-preview { height: 225px; }
 #settingsPreviewCanvas { display: block; width: 100%; height: 100%; }
 .preview-caption { position: absolute; left: 13px; top: 12px; max-width: 66%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: #d5ddea; text-shadow: 0 1px 5px #000; font: 650 9px/1.2 monospace; pointer-events: none; }
 .beat-indicator { position: absolute; right: 13px; top: 10px; padding: 3px 6px; border: 1px solid #ffffff20; border-radius: 5px; color: #ffffff55; background: #11172277; font: 650 8px/1.2 monospace; transition: color .08s, background .08s; pointer-events: none; }
@@ -59,4 +62,19 @@
 .preview-feedback.visible { opacity: 1; }
 #settingsPreviewPlay { position: absolute; right: 13px; bottom: 12px; display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid #ffffff20; border-radius: 50%; color: #fff; background: #080b16cc; cursor: pointer; transition: opacity .2s; }
 #settingsPreviewPlay.is-hidden { opacity: 0; pointer-events: none; }
+#lyricsPresetPreviewCanvas { display: block; width: 100%; height: 100%; }
+.lyrics-preset-preview-lines { position: absolute; inset: 37px 18px 34px; display: flex; flex-direction: column; justify-content: center; gap: 14px; overflow: hidden; pointer-events: none; -webkit-mask-image: linear-gradient(transparent, #000 12%, #000 85%, transparent); mask-image: linear-gradient(transparent, #000 12%, #000 85%, transparent); }
+.lyrics-preview-line { min-height: 18px; color: #f7f4fb; opacity: .43; transform: scale(.94); transform-origin: left center; text-shadow: 0 2px 8px #000; transition: opacity .5s, transform .5s; }
+.lyrics-preview-line.is-active { opacity: 1; transform: scale(1.02); }
+.lyrics-preview-line.is-blank { min-height: 15px; }
+.lyrics-preview-line strong { display: block; font-size: 13px; line-height: 1.2; }
+.lyrics-preview-line.is-active strong { background: linear-gradient(90deg,#fff var(--lyric-progress,0%),#c8bccb calc(var(--lyric-progress,0%) + 7%)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.lyrics-preview-line small { display: table; max-width: 100%; margin-top: 3px; padding: 1px 5px; border: 1px solid #ffffff35; border-radius: 9px; background: #ffffff22; font-size: 8px; }
+.lyrics-preview-line span { display: block; margin-top: 3px; font-size: 9px; }
+.lyrics-preview-empty { color: #f5f2fa; text-align: center; text-shadow: 0 2px 9px #000; font-size: 13px; }
+#lyricsPresetPreviewPlay { position: absolute; right: 13px; bottom: 12px; display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid #ffffff20; border-radius: 50%; color: #fff; background: #080b16cc; cursor: pointer; transition: opacity .2s; }
+#lyricsPresetPreviewPlay.is-hidden { opacity: 0; pointer-events: none; }
+.lyrics-credits { padding: 14px; display: grid; gap: 4px; }
+.lyrics-credits strong { font-size: 12px; font-weight: 650; }
+.lyrics-credits span { margin-bottom: 9px; color: #a7a7af; font-size: 11px; line-height: 1.35; }
 .mode-note { margin-top: -14px; }

@@ -16,3 +16,6 @@ demo-ui/audio/*
 !demo-ui/audio/.gitkeep
 demo-ui/Visualizer editor _ Music Visualizer Lab.html*
 demo-ui/Visualizer editor _ Music Visualizer Lab_files/
+lyrics-probe-and-demo/
+lyrics-api-demo/
+__pycache__/

@@ -52,13 +52,13 @@
       this.shape=createCanvas(this.width,this.height);this.history=createCanvas(this.width,this.height);
       this.shapeContext=this.shape.getContext('2d',{willReadFrequently:true});
       this.trailPixels=this.history.getContext('2d').createImageData(this.width,this.height);
-      this.background=createCanvas(this.width,this.height);this.backgroundKey='';this.artwork=null;this.artworkVersion=0;
+      this.background=createCanvas(this.width,this.height);this.backgroundKey='';this.artwork=null;this.coverArtwork=null;this.artworkVersion=0;
       this.palette=['#67a8ff','#bb91ff','#68d7df'];this.lastMode='';this.peaks=[];this.lastTime=null;
       const noise=createCanvas(128,128),nctx=noise.getContext('2d'),pixels=nctx.createImageData(128,128);
       for(let i=0;i<pixels.data.length;i+=4) {const v=Math.random()*255;pixels.data[i]=pixels.data[i+1]=pixels.data[i+2]=v;pixels.data[i+3]=55;}
       nctx.putImageData(pixels,0,0);this.noise=noise;
     }
-    setArtwork(image,palette) {this.artwork=image;this.artworkVersion++;if(palette)this.palette=palette;this.backgroundKey='';}
+    setArtwork(image,palette,coverImage=image) {this.artwork=image;this.coverArtwork=coverImage;this.artworkVersion++;if(palette)this.palette=palette;this.backgroundKey='';}
     clearHistory() {this.history.getContext('2d').clearRect(0,0,this.width,this.height);this.trailPixels.data.fill(0);this.peaks=[];}
     paint(ctx,p) {
       if(p.colourMode==='solid')return p.colour1;
@@ -210,9 +210,9 @@
       c.shadowBlur=halo*35;c.shadowColor=p.outlineColour;c.fillStyle='#10131c';c.beginPath();c.arc(0,0,radius,0,TAU);c.fill();c.shadowBlur=0;
       c.save();c.beginPath();c.arc(0,0,radius,0,TAU);c.clip();
       c.rotate(frame.time*Number(p.spin||0)*Math.PI/180);
-      if(p.coverMode==='artwork' && this.artwork) {
-        const iw=this.artwork.naturalWidth||this.artwork.width,ih=this.artwork.naturalHeight||this.artwork.height,scale=radius*2/Math.min(iw,ih);
-        c.drawImage(this.artwork,-iw*scale/2,-ih*scale/2,iw*scale,ih*scale);
+      if(p.coverMode==='artwork' && this.coverArtwork) {
+        const iw=this.coverArtwork.naturalWidth||this.coverArtwork.width,ih=this.coverArtwork.naturalHeight||this.coverArtwork.height,scale=radius*2/Math.min(iw,ih);
+        c.drawImage(this.coverArtwork,-iw*scale/2,-ih*scale/2,iw*scale,ih*scale);
       } else {c.fillStyle='#f5f6fb';c.textAlign='center';c.textBaseline='middle';c.font=`800 ${Math.max(9,radius*.34)}px system-ui`;c.fillText('ULP',0,1);}
       c.restore();
       if(m.flash>0) {c.fillStyle=`rgba(255,255,255,${m.flash})`;c.beginPath();c.arc(0,0,radius,0,TAU);c.fill();}

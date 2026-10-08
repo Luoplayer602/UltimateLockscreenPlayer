@@ -2,6 +2,7 @@
 
 @interface ULPVisualizerPreviewController : PSViewController
 @property (nonatomic) BOOL compact;
+- (void)refreshVisualPreferences;
 - (void)startPreviewRendering;
 - (void)stopPreviewRendering;
 @end

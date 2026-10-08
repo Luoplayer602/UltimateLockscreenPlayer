@@ -1,0 +1,56 @@
+<!doctype html><meta charset="utf-8"><title>Lyrics UI smoke test</title><pre id="result">running</pre><iframe id="demo" src="../index.html?test=1" style="width:1px;height:1px;border:0"></iframe>
+<script>
+document.getElementById('demo').addEventListener('load', async event => {
+  const doc = event.target.contentDocument, win = event.target.contentWindow;
+  const checks = [];
+  const check = (name, passed) => checks.push({ name, passed: Boolean(passed) });
+  check('lyrics controller ready', Boolean(win.demoLyrics));
+  check('lyrics hidden until a source is set', doc.getElementById('lyricsOverlay').hidden);
+  doc.getElementById('fakeHome').click();
+  check('root has Lyrics navigation', Boolean(doc.querySelector('[data-page="lyrics"]')));
+  doc.querySelector('[data-page="lyrics"]').click();
+  check('Lyrics settings opens', doc.getElementById('settingsScreen').dataset.page === 'lyrics');
+  check('Lyrics root has enabled, preset and app', Boolean(doc.querySelector('[data-lyrics-setting="enabled"]') && doc.querySelector('[data-page="lyricsPreset"]') && doc.querySelector('[data-page="lyricsYoutubeMusic"]')));
+  doc.querySelector('[data-page="lyricsPreset"]').click();
+  check('Preset page has live preview and preset 1', Boolean(doc.getElementById('lyricsPresetPreviewCanvas') && doc.querySelector('[data-lyrics-preset="preset1"]')));
+  doc.querySelector('[data-lyrics-preset="preset1"]').click();
+  check('preset 1 selection persists in state', win.demoLyrics.state.preset === 'preset1');
+  doc.getElementById('settingsBack').click();
+  check('Preset back returns to Lyrics', doc.getElementById('settingsScreen').dataset.page === 'lyrics');
+  doc.querySelector('[data-page="lyricsYoutubeMusic"]').click();
+  check('YouTube Music has translation, romanization, offset and credits', Boolean(doc.querySelector('[data-lyrics-setting="english"]') && doc.querySelector('[data-lyrics-setting="romanization"]') && doc.getElementById('lyricsOffset') && doc.querySelector('.lyrics-credits')));
+  const parsed = win.demoLyrics.parseLyrics('[00:00.00]Dòng đầu\n[00:04.00]\n[00:25.00]Dòng sau', 'lrc');
+  const timeline = win.demoLyrics.addInstrumentalGaps(parsed);
+  check('timed blank line preserved', parsed.length === 3 && parsed[1].text === '');
+  check('long instrumental gap gets music icon item', timeline.some(line => line.kind === 'instrumental'));
+  win.demoLyrics.state.lines = timeline;
+  win.demoLyrics.state.options.offset = 10;
+  win.demoLyrics.render();
+  check('blank line has its own layout space', Boolean(doc.querySelector('.lyric-card.is-blank')));
+  check('instrumental note is active during long gap', Boolean(doc.querySelector('.lyric-card.is-instrumental.is-active .instrumental-note')));
+  check('instrumental fill advances with playback', Number.parseFloat(doc.querySelector('.lyric-card.is-instrumental.is-active').style.getPropertyValue('--gap-progress')) > 0);
+  check('instrumental fill shares exact note shape', doc.querySelectorAll('.lyric-card.is-instrumental.is-active .instrumental-note svg').length === 2);
+  const activeNote=doc.querySelector('.lyric-card.is-instrumental.is-active .instrumental-note');
+  activeNote.style.transition='none'; activeNote.style.setProperty('--cover-motion-scale','1.2');
+  check('instrumental note follows cover zoom', getComputedStyle(activeNote).transform.includes('1.2'));
+  win.demoLyrics.state.options.offset = 0;
+  const source = doc.createElement('canvas'); source.width=120; source.height=90;
+  const ctx=source.getContext('2d'); ctx.fillStyle='#000'; ctx.fillRect(0,0,120,90); ctx.fillStyle='#f22'; ctx.fillRect(20,10,80,70);
+  const cropped=win.coverArtwork(source), corner=cropped.getContext('2d').getImageData(2,2,1,1).data;
+  check('cover crop removes dark thumbnail borders', cropped.width === cropped.height && corner[0] > 150 && corner[1] < 80);
+  const toggle = doc.querySelector('[data-lyrics-setting="romanization"]');
+  toggle.checked = false;
+  toggle.dispatchEvent(new Event('change', { bubbles:true }));
+  check('toggle updates state', win.demoLyrics.state.options.romanization === false);
+  const offset=doc.getElementById('lyricsOffset'); offset.value='1.5'; offset.dispatchEvent(new Event('input',{bubbles:true}));
+  doc.getElementById('settingsBack').click(); doc.querySelector('[data-page="lyricsYoutubeMusic"]').click();
+  check('display offset survives page navigation', win.demoLyrics.state.options.offset === 1.5 && doc.getElementById('lyricsOffset').value === '1.5');
+  win.demoLyrics.setOption('offset',0);
+  win.demoLyrics.setOption('english', false);
+  await win.demoLyrics.loadVideo('sU5nACHkLyk');
+  await new Promise(resolve => setTimeout(resolve, 500));
+  check('video ID loads lyrics', win.demoLyrics.state.lines.length > 0);
+  check('thumbnail updates player', doc.getElementById('thumb').classList.contains('has-image'));
+  document.getElementById('result').textContent = JSON.stringify(checks, null, 2);
+});
+</script>

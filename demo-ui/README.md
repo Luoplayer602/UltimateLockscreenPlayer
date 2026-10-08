@@ -3,10 +3,10 @@
 Chạy từ thư mục repo:
 
 ```sh
-python3 -m http.server 8765 --bind 127.0.0.1 --directory demo-ui
+python3 demo-ui/server.py
 ```
 
-Mở **http://localhost:8765/**. Nhấn Play để dùng `audio/inst.wav`, hoặc chọn tệp ở **Nhạc thử**. Khi mở `index.html` qua `file://`, hãy dùng nút chọn tệp: một số trình duyệt chặn dữ liệu Web Audio của bài mẫu tải bằng đường dẫn file.
+Mở địa chỉ được in sau `ULP demo UI:` (thường là **http://127.0.0.1:8765/**). Nếu cổng bận, máy chủ tự chọn cổng khác. Nhấn Play để dùng `audio/inst.wav`, hoặc chọn tệp ở **Nhạc thử**. Máy chủ Python cần thiết cho Lyrics và thumbnail; mở HTML bằng `file://` hay `python3 -m http.server` sẽ không có các API này.
 
 ## Thao tác
 
@@ -14,7 +14,10 @@ Mở **http://localhost:8765/**. Nhấn Play để dùng `audio/inst.wav`, hoặ
 - Visualizer → Modes có 10 mode; mỗi mode lưu cấu hình riêng. Switch, select, colour và reset cập nhật ngay, giữ vị trí cuộn.
 - Preview cố định là phần phóng gần của chính khung đang vẽ trên màn hình khóa. Preview toàn cảnh giữ nguyên tỷ lệ màn hình dọc. Cả hai sao chép cùng canvas; nền, cover, waveform và chuyển động không được tính lại riêng.
 - Play/Pause ẩn sau khi phát; chạm preview để hiện lại. Nhãn BEAT sáng khi một sự kiện beat được phát hiện.
-- Lyrics và Merged presets vẫn là các mục dự kiến theo đặc tả.
+- Nhập YouTube ID ở thanh bên để lấy lời, tên bài và thumbnail. Nút ♪ trên màn hình khóa bật/tắt lời. Cài đặt → ULP → Lyrics có Enabled, Preset và YouTube Music. Trang Preset có preview phát theo nhạc và Preset 1; trang YouTube Music có Translate, Phiên âm, Display offset và ghi công. Lyrics dùng preset 1: lời xếp dọc trực tiếp trên nền, cuộn tới dòng đang phát, dòng hiện tại phóng nhẹ và sáng lên; lời gốc được tô dần giữa hai mốc thời gian. Dòng trống có mốc thời gian được giữ lại; khoảng nhạc dạo dài hiện nốt nhạc được lấp đầy theo thời gian. Merged presets vẫn là mục dự kiến.
+- Lyrics lấy dữ liệu từ Unison; khi dịch lỗi hoặc thiếu phiên âm, máy chủ demo thử đường dự phòng Google Translate như Better Lyrics. Chỉ gửi các dòng lời khi bạn bật chức năng dịch/phiên âm.
+- Proxy hiện không gửi `x-key-id` tới Unison. Thumbnail có viền tối được cắt và phóng đầy cover/Player; nền vẫn dùng ảnh gốc. Nốt nhạc dạo lấp đầy trong đúng hình nốt và nhận cùng mức zoom với cover.
+- Âm thanh visualizer vẫn lấy từ file local. Để lời chạy đúng nhạc, hãy chọn file âm thanh khớp với YouTube ID. Trình duyệt không cấp PCM của iframe YouTube cho Web Audio trong demo này.
 
 ## Âm thanh và hiệu ứng
 

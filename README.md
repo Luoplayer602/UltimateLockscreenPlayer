@@ -48,4 +48,4 @@ Nếu dùng SSH key, tạo bằng `ssh-keygen -t ed25519 -f ~/.ssh/ulp_iphone`, 
 
 ## Demo giao diện trên máy tính
 
-Mở [`demo-ui/index.html`](demo-ui/index.html) trong trình duyệt. Xem [`demo-ui/README.md`](demo-ui/README.md) để nạp nhạc và artwork thử nghiệm.
+Chạy `python3 demo-ui/server.py` rồi mở địa chỉ localhost được in ra để thử visualizer và Lyrics bằng YouTube ID. Xem [`demo-ui/README.md`](demo-ui/README.md) để nạp nhạc và artwork thử nghiệm.

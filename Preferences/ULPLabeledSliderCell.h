@@ -1,4 +1,4 @@
-#import <Preferences/PSSliderTableCell.h>
+#import <Preferences/PSTableCell.h>
 
-@interface ULPLabeledSliderCell : PSSliderTableCell
+@interface ULPLabeledSliderCell : PSTableCell
 @end

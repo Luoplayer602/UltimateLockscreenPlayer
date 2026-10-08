@@ -21,6 +21,11 @@
       <label class="field-label" for="artworkFile">Artwork</label>
       <input id="artworkFile" type="file" accept="image/*">
 
+      <label class="field-label" for="lyricsVideoId">Lyrics · YouTube ID</label>
+      <div class="lyrics-source-row"><input id="lyricsVideoId" type="text" placeholder="sU5nACHkLyk" autocomplete="off"><button id="loadLyrics" type="button">Lấy lời</button></div>
+      <p class="hint">Chỉ cần video ID: demo lấy lời, tên bài và thumbnail. Muốn lời khớp thời gian, chọn đúng bản nhạc ở “Nhạc thử”.</p>
+      <p id="lyricsSourceStatus" class="lyrics-source-status" role="status">Chưa chọn nguồn lời.</p>
+
       <p class="hint">Mọi tùy chỉnh nằm trong iPhone giả lập. Chọn mode và thử các mục trong Cài đặt, sau đó nhấn Apply để trở về màn hình khóa.</p>
       <p id="status" class="status" role="status">Sẵn sàng phát inst.wav. Nhấn Play trên khung Player.</p>
       <p class="hint">Demo chạy trong trình duyệt, chưa phản ánh hook và hiệu năng trên iPhone 6s.</p>
@@ -31,6 +36,7 @@
         <div class="screen" id="screen">
           <canvas id="visualizer" class="scene-canvas" aria-label="Visualizer phản ứng với âm thanh trực tiếp"></canvas>
           <div class="status-bar" aria-hidden="true"><span>●●● ▰</span><span>9:41</span><span>▰ 100%</span></div>
+          <div id="lyricsOverlay" class="lyrics-overlay" aria-live="off" hidden><div id="lyricsTrack" class="lyrics-track"></div><div id="lyricsEmpty" class="lyrics-empty-state">Chưa có lời bài hát</div></div>
 
           <div class="player" id="player">
             <svg class="progress-border" viewBox="0 0 390 156" preserveAspectRatio="none" aria-hidden="true">
@@ -54,7 +60,7 @@
             </div>
           </div>
 
-          <div class="bottom-actions" aria-hidden="true"><span>◉</span><span>◌</span></div>
+          <div class="bottom-actions"><button id="lyricsToggle" type="button" aria-label="Ẩn hoặc hiện lời bài hát" title="Lyrics">♪</button><span aria-hidden="true">◌</span></div>
           <div class="home-indicator" aria-hidden="true"></div>
           <div id="settingsScreen" class="settings-screen" hidden>
             <div class="settings-nav"><button id="settingsBack" type="button" aria-label="Trở lại">‹</button><strong id="settingsTitle">ULP</strong><button id="settingsApply" type="button">Apply</button></div>
@@ -71,6 +77,7 @@
   <script src="renderer.js"></script>
   <script src="settings-schema.js"></script>
   <script src="app.js"></script>
+  <script src="lyrics.js"></script>
   <script src="settings.js"></script>
 </body>
 </html>

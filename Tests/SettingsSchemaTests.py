@@ -5,6 +5,11 @@ import re
 
 root = Path(__file__).resolve().parents[1]
 items = plistlib.loads((root / 'Preferences/Resources/Visualizer.plist').read_bytes())['items']
+ids = [item.get('id') for item in items]
+assert all(ids), 'Every native row needs an ID for metadata lookup'
+assert len(ids) == len(set(ids)), 'Duplicate row ID makes mode filtering ambiguous'
+mode_link = next(item for item in items if item['id'] == 'ULPModePicker')
+assert mode_link['cell'] == 'PSLinkCell', 'Modes must appear as navigation'
 loader = (root / 'Visualization/ULPVisualPreferences.m').read_text()
 read_keys = set(re.findall(r'(?:NUMBER|BOOLEAN)\(\w+, "([^"]+)"\)', loader))
 read_keys.update(re.findall(r'ULP(?:Number|Bool|Byte)\(values, @"([^"]+)"', loader))
@@ -31,4 +36,12 @@ for mode in range(9):
             assert len(item['validTitles']) == len(item['validValues']), item
             assert item['default'] in item['validValues'], item
     assert 'VisualPreset' not in keys, 'Legacy presets must not override the chosen mode'
+bar = [item for item in items if 'ulpModes' not in item or 1 in item['ulpModes']]
+bar_by_key = {item['key']: item for item in bar if 'key' in item}
+assert bar_by_key['VisualPoints']['default'] == 32
+assert bar_by_key['VisualPoints'].get('ulpInteger'), 'Bar count must save an integer'
+assert bar_by_key['BarSpacing']['default'] == .25
+assert bar_by_key['BarHeight']['default'] == 1
+assert 'Rows' not in bar_by_key and 'DotSize' not in bar_by_key
+assert not any(item.get('label') == 'SHAPE' for item in bar)
 print('SettingsSchemaTests OK: 9 mode configurations')

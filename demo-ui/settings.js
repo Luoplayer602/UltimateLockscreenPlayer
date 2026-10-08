@@ -42,7 +42,8 @@ const viLabels = {
   'Rounded caps':'Đầu bo tròn','Show inner ring':'Hiện vòng trong','Ring opacity':'Độ mờ vòng',
   'Peak caps type':'Kiểu vạch đỉnh','Hide visualizer but peak caps':'Chỉ hiện vạch đỉnh',
   'Fill ring':'Tô vòng','Reactivity':'Độ phản ứng',
-  'Beat sensitivity':'Độ nhạy bắt nhịp','Minimum beat interval · s':'Khoảng cách nhịp tối thiểu · s','Beat release · s':'Thời gian nhả nhịp · s'
+  'Beat sensitivity':'Độ nhạy bắt nhịp','Minimum beat interval · s':'Khoảng cách nhịp tối thiểu · s','Beat release · s':'Thời gian nhả nhịp · s',
+  'LYRICS':'LỜI BÀI HÁT','LANGUAGE':'NGÔN NGỮ','SYNC':'ĐỒNG BỘ','APPS':'ỨNG DỤNG','CREDITS':'GHI CÔNG'
 };
 const tr = text => design.language === 'vi' ? (viLabels[text] || text) : text;
 
@@ -110,6 +111,9 @@ function fields(title, list, note = '') { return section(title, list.map(renderF
 function previewMarkup() {
   return `<div class="settings-preview" id="settingsPreview" role="group" aria-label="Preview visualizer"><canvas id="settingsPreviewCanvas" aria-hidden="true"></canvas><span class="preview-caption" id="previewCaption">PREVIEW</span><span class="beat-indicator" id="previewBeat">BEAT</span><span id="settingsPreviewFeedback" class="preview-feedback" aria-live="polite"></span><button id="settingsPreviewPlay" type="button" aria-label="Phát preview">▶</button></div>`;
 }
+function lyricsPreviewMarkup() {
+  return `<div class="settings-preview lyrics-preset-preview" id="lyricsPresetPreview" role="group" aria-label="Preview Lyrics preset 1"><canvas id="lyricsPresetPreviewCanvas" aria-hidden="true"></canvas><span class="preview-caption">PREVIEW · PRESET 1</span><div class="lyrics-preset-preview-lines" id="lyricsPresetPreviewLines"></div><button id="lyricsPresetPreviewPlay" type="button" aria-label="Phát preview">▶</button></div>`;
+}
 function announceSetting(id, value, isLive = true) {
   const badge = document.getElementById('settingsPreviewFeedback');
   if (!badge) return;
@@ -124,7 +128,7 @@ function announceSetting(id, value, isLive = true) {
 function rootPage() {
   const later = design.language === 'vi' ? 'Sắp có' : 'Planned';
   return section('TWEAK ENABLED', row('Enabled', `<input class="setting-toggle" type="checkbox" data-global="enabled" ${design.enabled ? 'checked' : ''}>`)) +
-    section('SETTINGS', link('Visualizer','visualizer') + row('Lyrics',`<span class="setting-value">${later}</span>`)) +
+    section('SETTINGS', link('Visualizer','visualizer') + link('Lyrics','lyrics')) +
     section('MERGED PRESETS',row('Merged presets',`<span class="setting-value">${later}</span>`)) +
     section('PROJECT', `<label class="setting-row setting-picker"><span>Language</span><select data-global="language"><option value="vi" ${design.language === 'vi' ? 'selected' : ''}>Tiếng Việt</option><option value="en" ${design.language === 'en' ? 'selected' : ''}>English</option></select></label><a class="setting-row setting-link" href="https://github.com/luoplayer602" target="_blank" rel="noopener noreferrer"><span>GitHub · luoplayer602</span><span class="setting-value">↗</span></a>`);
 }
@@ -146,14 +150,37 @@ function modesPage() {
       `<button class="setting-row setting-link mode-choice" type="button" data-mode="${id}"><span>${mode.label}${mode.detail ? `<small>${mode.detail}</small>` : ''}</span><span class="setting-value">${id === design.mode ? '✓' : ''}</span></button>`).join(''))).join('') +
     '<p class="setting-note mode-note">Mỗi mode ghi nhớ các giá trị riêng trong trình duyệt.</p>';
 }
+function lyricsPage() {
+  const options = window.demoLyrics.state.options;
+  const label = (vi,en) => design.language === 'vi' ? vi : en;
+  return section('LYRICS',
+    `<label class="setting-row setting-field"><span>Enabled</span><input class="setting-toggle" type="checkbox" data-lyrics-setting="enabled" ${options.enabled ? 'checked' : ''}></label>`)
+    + section('SETTINGS',link('Preset','lyricsPreset','Preset 1'))
+    + section('APPS',link('YouTube Music','lyricsYoutubeMusic'));
+}
+function lyricsPresetPage() {
+  return section('SETTINGS',
+    `<button class="setting-row setting-link lyrics-preset-choice" type="button" data-lyrics-preset="preset1"><span>Preset 1</span><span class="setting-value">✓</span></button>`);
+}
+function lyricsYoutubeMusicPage() {
+  const options = window.demoLyrics.state.options;
+  const label = (vi,en) => design.language === 'vi' ? vi : en;
+  return section('SETTINGS',
+    `<label class="setting-row setting-field"><span>Translate</span><input class="setting-toggle" type="checkbox" data-lyrics-setting="english" ${options.english ? 'checked' : ''}></label>` +
+    `<label class="setting-row setting-field"><span>${label('Phiên âm','Romanization')}</span><input class="setting-toggle" type="checkbox" data-lyrics-setting="romanization" ${options.romanization ? 'checked' : ''}></label>` +
+    `<div class="setting-slider"><div class="setting-slider-title"><label for="lyricsOffset">Display offset</label><output>${options.offset.toFixed(1)} s</output></div><input id="lyricsOffset" type="range" min="-10" max="10" step="0.1" value="${options.offset}" data-lyrics-setting="offset"><small>${label('Dịch lời sớm hơn hoặc muộn hơn so với nhạc.','Move lyric timing earlier or later than the audio.')}</small></div>`)
+    + section('CREDITS',
+      `<div class="lyrics-credits"><strong>Better Lyrics · Unison</strong><span>${label('Nguồn lời và bản dịch nếu có.','Lyrics and translation when available.')}</span><strong>Google Translate</strong><span>${label('Nguồn dự phòng cho dịch và phiên âm.','Fallback for translation and romanization.')}</span></div>`);
+}
 function setPage(page) {
   settingsPage = page;
   settingsScreen.dataset.page = page;
-  settingsTitle.textContent = {root:'ULP',visualizer:'Visualizer',modes:'Modes',preview:'Preview'}[page];
+  settingsTitle.textContent = {root:'ULP',visualizer:'Visualizer',modes:'Modes',preview:'Preview',lyrics:'Lyrics',lyricsPreset:'Preset',lyricsYoutubeMusic:'YouTube Music'}[page];
   document.getElementById('settingsBack').hidden = false;
-  previewHost.hidden = page === 'root';
-  previewHost.innerHTML = page === 'root' ? '' : previewMarkup();
-  settingsScroll.innerHTML = page === 'root' ? rootPage() : page === 'visualizer' ? visualizerPage() : page === 'modes' ? modesPage() : section('PREVIEW',link('Chỉnh visualizer','visualizer'));
+  previewHost.hidden = !['visualizer','modes','preview','lyricsPreset'].includes(page);
+  previewHost.innerHTML = previewHost.hidden ? '' : page === 'lyricsPreset' ? lyricsPreviewMarkup() : previewMarkup();
+  if (page === 'lyricsPreset') lyricsPreviewKey = '';
+  settingsScroll.innerHTML = page === 'root' ? rootPage() : page === 'visualizer' ? visualizerPage() : page === 'modes' ? modesPage() : page === 'lyrics' ? lyricsPage() : page === 'lyricsPreset' ? lyricsPresetPage() : page === 'lyricsYoutubeMusic' ? lyricsYoutubeMusicPage() : section('PREVIEW',link('Chỉnh visualizer','visualizer'));
   settingsScroll.scrollTop = 0;
   refreshDependentControls();
   syncPreviewButton();
@@ -175,21 +202,57 @@ function togglePhone() {
   if (open) setPage('root');
 }
 function revealPreviewPlay() {
-  const button = document.getElementById('settingsPreviewPlay');
+  const button = document.getElementById('settingsPreviewPlay') || document.getElementById('lyricsPresetPreviewPlay');
   if (!button) return;
   button.classList.remove('is-hidden');
   clearTimeout(previewControlsTimer);
   if (!audio.paused) previewControlsTimer = setTimeout(() => button.classList.add('is-hidden'),2600);
 }
 function syncPreviewButton() {
-  const button = document.getElementById('settingsPreviewPlay');
+  const button = document.getElementById('settingsPreviewPlay') || document.getElementById('lyricsPresetPreviewPlay');
   if (!button) return;
   button.textContent = audio.paused ? '▶' : 'Ⅱ';
   button.setAttribute('aria-label',audio.paused ? 'Phát preview' : 'Tạm dừng preview');
   if (audio.paused) button.classList.remove('is-hidden'); else revealPreviewPlay();
 }
+let lyricsPreviewKey = '';
+function updateLyricsPresetPreview() {
+  const canvas = document.getElementById('lyricsPresetPreviewCanvas');
+  const host = document.getElementById('lyricsPresetPreview');
+  const rows = document.getElementById('lyricsPresetPreviewLines');
+  if (!canvas || !host || !rows) return;
+  const ratio = Math.min(window.devicePixelRatio || 1, 2);
+  const width = Math.max(1,Math.round(host.clientWidth*ratio)),height = Math.max(1,Math.round(host.clientHeight*ratio));
+  if (canvas.width !== width) canvas.width = width;
+  if (canvas.height !== height) canvas.height = height;
+  sceneRenderer.copyPreview(canvas,false);
+  const lyrics = window.demoLyrics.state;
+  const active = Math.max(0,lyrics.activeIndex);
+  const indexes = lyrics.lines.length ? [active-1,active,active+1].filter(index => index >= 0 && index < lyrics.lines.length) : [];
+  const key = `${lyrics.videoId}|${active}|${lyrics.translated.length}|${lyrics.options.english}|${lyrics.options.romanization}|${indexes.map(index => lyrics.lines[index].text).join('|')}`;
+  if (key !== lyricsPreviewKey) {
+    lyricsPreviewKey = key;
+    rows.replaceChildren();
+    if (!indexes.length) {
+      const empty = document.createElement('div'); empty.className='lyrics-preview-empty';
+      empty.textContent = design.language === 'vi' ? 'Lời bài hát sẽ hiện ở đây' : 'Lyrics will appear here'; rows.append(empty);
+    } else for (const index of indexes) {
+      const line = lyrics.lines[index],extra = lyrics.translated[index] || {};
+      const item = document.createElement('div'); item.className='lyrics-preview-line'; item.classList.toggle('is-active',index === active);
+      if (line.kind === 'blank') item.classList.add('is-blank');
+      const original = document.createElement('strong'); original.textContent = line.kind === 'instrumental' ? '♪' : line.text;
+      item.append(original);
+      if (lyrics.options.romanization && extra.romanization) { const phonetic=document.createElement('small'); phonetic.textContent=extra.romanization; item.append(phonetic); }
+      if (lyrics.options.english && extra.needsTranslation !== false && extra.translation) { const translation=document.createElement('span'); translation.textContent=extra.translation; item.append(translation); }
+      rows.append(item);
+    }
+  }
+  const source = lyrics.cards[active];
+  rows.querySelector('.lyrics-preview-line.is-active')?.style.setProperty('--lyric-progress',source?.style.getPropertyValue('--lyric-progress') || '0%');
+}
 window.updateSettingsPreview = function() {
   if (settingsScreen.hidden) return;
+  if (settingsPage === 'lyricsPreset') return updateLyricsPresetPreview();
   const target = document.getElementById('settingsPreviewCanvas');
   const card = document.getElementById('settingsPreview');
   if (!target || !card) return;
@@ -206,7 +269,7 @@ window.updateSettingsPreview = function() {
 fakeHome.addEventListener('click',togglePhone);
 document.getElementById('settingsBack').addEventListener('click',() => {
   if (settingsPage === 'root') togglePhone();
-  else setPage(['modes','preview'].includes(settingsPage) ? 'visualizer' : 'root');
+  else setPage(['modes','preview'].includes(settingsPage) ? 'visualizer' : ['lyricsPreset','lyricsYoutubeMusic'].includes(settingsPage) ? 'lyrics' : 'root');
 });
 document.getElementById('settingsApply').addEventListener('click',() => {
   syncDesign();
@@ -214,6 +277,8 @@ document.getElementById('settingsApply').addEventListener('click',() => {
   togglePhone();
 });
 settingsScroll.addEventListener('click',event => {
+  const lyricsPreset = event.target.closest('[data-lyrics-preset]');
+  if (lyricsPreset) { window.demoLyrics.selectPreset(lyricsPreset.dataset.lyricsPreset); updateLyricsPresetPreview(); return; }
   const choice = event.target.closest('button[data-mode]');
   if (choice) { design.mode = choice.dataset.mode; profile(); syncDesign(); setPage('visualizer'); return; }
   const nav = event.target.closest('button[data-page]');
@@ -237,10 +302,18 @@ settingsScroll.addEventListener('click',event => {
   }
 });
 previewHost.addEventListener('click',event => {
-  if (event.target.closest('#settingsPreviewPlay')) { togglePlayback(); return; }
-  if (event.target.closest('#settingsPreview')) revealPreviewPlay();
+  if (event.target.closest('#settingsPreviewPlay, #lyricsPresetPreviewPlay')) { togglePlayback(); return; }
+  if (event.target.closest('#settingsPreview, #lyricsPresetPreview')) revealPreviewPlay();
 });
 function handleSettingControl(event) {
+  const lyricsOption = event.target.dataset.lyricsSetting;
+  if (lyricsOption) {
+    const value = event.target.type === 'checkbox' ? event.target.checked : Number(event.target.value);
+    window.demoLyrics.setOption(lyricsOption,value);
+    const output = event.target.closest('.setting-slider')?.querySelector('output');
+    if (output) output.textContent = `${Number(value).toFixed(1)} s`;
+    return;
+  }
   const fieldId = event.target.dataset.field;
   const globalId = event.target.dataset.global;
   if (!fieldId && !globalId) return;

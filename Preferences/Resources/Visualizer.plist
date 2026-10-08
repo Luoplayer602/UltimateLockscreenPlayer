@@ -11,6 +11,8 @@
 			<string>PSGroupCell</string>
 			<key>label</key>
 			<string>VISUAL ENABLED</string>
+			<key>id</key>
+			<string>ulp.VISUAL ENABLED</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -23,22 +25,24 @@
 			<string>com.luoplayer.ultimatelockscreenplayer</string>
 			<key>default</key>
 			<true/>
+			<key>id</key>
+			<string>ulp.VisualEnabled</string>
 		</dict>
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>label</key>
 			<string>SETTINGS</string>
+			<key>id</key>
+			<string>ulp.SETTINGS</string>
 		</dict>
 		<dict>
 			<key>cell</key>
-			<string>PSButtonCell</string>
+			<string>PSLinkCell</string>
 			<key>label</key>
 			<string>Modes</string>
 			<key>id</key>
 			<string>ULPModePicker</string>
-			<key>buttonAction</key>
-			<string>openModes</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -47,6 +51,8 @@
 			<string>Preview toàn màn hình</string>
 			<key>detail</key>
 			<string>ULPVisualizerPreviewController</string>
+			<key>id</key>
+			<string>ulp.Preview toàn màn hình</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -62,6 +68,8 @@
 			</array>
 			<key>footerText</key>
 			<string>Mirror đặt bass ở giữa; Reverse đảo thứ tự tần số. Mỗi mode giữ cài đặt riêng khi chuyển qua lại.</string>
+			<key>id</key>
+			<string>ulp.SPECTRUM</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -91,6 +99,8 @@
 			</array>
 			<key>ulpInteger</key>
 			<true/>
+			<key>id</key>
+			<string>ulp.VisualPoints</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -119,6 +129,8 @@
 			</array>
 			<key>ulpInteger</key>
 			<true/>
+			<key>id</key>
+			<string>ulp.VisualPoints.2</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -147,6 +159,8 @@
 			</array>
 			<key>ulpInteger</key>
 			<true/>
+			<key>id</key>
+			<string>ulp.VisualPoints.3</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -175,6 +189,8 @@
 			</array>
 			<key>ulpInteger</key>
 			<true/>
+			<key>id</key>
+			<string>ulp.Rows</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -203,6 +219,8 @@
 			</array>
 			<key>ulpInteger</key>
 			<true/>
+			<key>id</key>
+			<string>ulp.Rows.2</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -218,7 +236,7 @@
 			<key>cellClass</key>
 			<string>ULPLabeledSliderCell</string>
 			<key>height</key>
-			<integer>108</integer>
+			<integer>96</integer>
 			<key>min</key>
 			<integer>0</integer>
 			<key>max</key>
@@ -232,6 +250,8 @@
 			</array>
 			<key>ulpHelp</key>
 			<string>Giới hạn độ rộng mỗi cột. 0 tự tính theo số cột và khoảng cách.</string>
+			<key>id</key>
+			<string>ulp.BarWidth</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -247,7 +267,7 @@
 			<key>cellClass</key>
 			<string>ULPLabeledSliderCell</string>
 			<key>height</key>
-			<integer>108</integer>
+			<integer>96</integer>
 			<key>min</key>
 			<integer>0</integer>
 			<key>max</key>
@@ -262,6 +282,8 @@
 			</array>
 			<key>ulpHelp</key>
 			<string>Phần khoảng trống trong mỗi ô cột. Tăng để nới khoảng cách.</string>
+			<key>id</key>
+			<string>ulp.BarSpacing</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -277,7 +299,7 @@
 			<key>cellClass</key>
 			<string>ULPLabeledSliderCell</string>
 			<key>height</key>
-			<integer>108</integer>
+			<integer>96</integer>
 			<key>min</key>
 			<real>0.05</real>
 			<key>max</key>
@@ -291,6 +313,8 @@
 			</array>
 			<key>ulpHelp</key>
 			<string>Tỷ lệ chiều cao cột. 1 dùng toàn bộ chiều cao của lớp.</string>
+			<key>id</key>
+			<string>ulp.BarHeight</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -318,6 +342,8 @@
 				<integer>1</integer>
 				<integer>7</integer>
 			</array>
+			<key>id</key>
+			<string>ulp.BarCornerRadius</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -344,6 +370,8 @@
 			<array>
 				<integer>8</integer>
 			</array>
+			<key>id</key>
+			<string>ulp.DotSize</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -370,6 +398,8 @@
 			<array>
 				<integer>2</integer>
 			</array>
+			<key>id</key>
+			<string>ulp.Thickness</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -385,7 +415,7 @@
 			<key>cellClass</key>
 			<string>ULPLabeledSliderCell</string>
 			<key>height</key>
-			<integer>108</integer>
+			<integer>96</integer>
 			<key>min</key>
 			<integer>0</integer>
 			<key>max</key>
@@ -401,6 +431,8 @@
 			</array>
 			<key>ulpHelp</key>
 			<string>Giảm để tập trung vào bass và low mids trong dải âm đã chọn.</string>
+			<key>id</key>
+			<string>ulp.FrequencyRange</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -420,6 +452,8 @@
 				<integer>7</integer>
 				<integer>8</integer>
 			</array>
+			<key>id</key>
+			<string>ulp.SpectrumMirror</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -439,6 +473,8 @@
 				<integer>7</integer>
 				<integer>8</integer>
 			</array>
+			<key>id</key>
+			<string>ulp.SpectrumReverse</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -454,7 +490,7 @@
 			<key>cellClass</key>
 			<string>ULPLabeledSliderCell</string>
 			<key>height</key>
-			<integer>108</integer>
+			<integer>96</integer>
 			<key>min</key>
 			<integer>0</integer>
 			<key>max</key>
@@ -468,6 +504,8 @@
 			</array>
 			<key>ulpHelp</key>
 			<string>Giảm chiều cao ở hai mép, giữ phần giữa nổi bật.</string>
+			<key>id</key>
+			<string>ulp.EdgeFade</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -499,6 +537,8 @@
 				<integer>1</integer>
 				<integer>7</integer>
 			</array>
+			<key>id</key>
+			<string>ulp.GrowFrom</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -527,6 +567,8 @@
 			<array>
 				<integer>8</integer>
 			</array>
+			<key>id</key>
+			<string>ulp.GrowFrom.2</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -542,7 +584,7 @@
 			<key>cellClass</key>
 			<string>ULPLabeledSliderCell</string>
 			<key>height</key>
-			<integer>108</integer>
+			<integer>96</integer>
 			<key>min</key>
 			<integer>0</integer>
 			<key>max</key>
@@ -556,6 +598,8 @@
 			</array>
 			<key>ulpHelp</key>
 			<string>Giữ đường cơ sở nhìn thấy được ở đoạn nhạc yên lặng.</string>
+			<key>id</key>
+			<string>ulp.MinimumHeight</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -571,7 +615,7 @@
 			<key>cellClass</key>
 			<string>ULPLabeledSliderCell</string>
 			<key>height</key>
-			<integer>108</integer>
+			<integer>96</integer>
 			<key>min</key>
 			<real>0.25</real>
 			<key>max</key>
@@ -585,6 +629,8 @@
 			</array>
 			<key>ulpHelp</key>
 			<string>Trên 1 nhấn mạnh các đỉnh; dưới 1 làm các dải nhỏ hiện rõ hơn.</string>
+			<key>id</key>
+			<string>ulp.Dynamics</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -602,6 +648,8 @@
 				<integer>1</integer>
 				<integer>7</integer>
 			</array>
+			<key>id</key>
+			<string>ulp.PeakCaps</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -631,6 +679,8 @@
 			</array>
 			<key>ulpDependsOn</key>
 			<string>PeakCaps</string>
+			<key>id</key>
+			<string>ulp.CapThickness</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -658,6 +708,8 @@
 				<integer>7</integer>
 				<integer>8</integer>
 			</array>
+			<key>id</key>
+			<string>ulp.UnlitOpacity</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -674,6 +726,8 @@
 			<array>
 				<integer>2</integer>
 			</array>
+			<key>id</key>
+			<string>ulp.SpectrumFill</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -702,6 +756,8 @@
 			</array>
 			<key>ulpDependsOn</key>
 			<string>SpectrumFill</string>
+			<key>id</key>
+			<string>ulp.FillOpacity</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -718,6 +774,8 @@
 			<array>
 				<integer>2</integer>
 			</array>
+			<key>id</key>
+			<string>ulp.MirrorVertical</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -732,6 +790,8 @@
 				<integer>5</integer>
 				<integer>6</integer>
 			</array>
+			<key>id</key>
+			<string>ulp.SHAPE</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -764,6 +824,8 @@
 			</array>
 			<key>ulpInteger</key>
 			<true/>
+			<key>id</key>
+			<string>ulp.VisualPoints.4</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -794,6 +856,8 @@
 				<integer>5</integer>
 				<integer>6</integer>
 			</array>
+			<key>id</key>
+			<string>ulp.VisualAnimationScale</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -830,12 +894,16 @@
 				<integer>5</integer>
 				<integer>6</integer>
 			</array>
+			<key>id</key>
+			<string>ulp.VisualSymmetry</string>
 		</dict>
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>label</key>
 			<string>COLOUR</string>
+			<key>id</key>
+			<string>ulp.COLOUR</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -848,6 +916,8 @@
 			<string>com.luoplayer.ultimatelockscreenplayer</string>
 			<key>default</key>
 			<true/>
+			<key>id</key>
+			<string>ulp.VisualAutoColor</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -862,6 +932,8 @@
 			<string>#FFFFFF</string>
 			<key>ulpDisabledBy</key>
 			<string>VisualAutoColor</string>
+			<key>id</key>
+			<string>ulp.VisualColor</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -884,6 +956,8 @@
 			<integer>1</integer>
 			<key>showValue</key>
 			<true/>
+			<key>id</key>
+			<string>ulp.VisualOpacity</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -899,7 +973,7 @@
 			<key>cellClass</key>
 			<string>ULPLabeledSliderCell</string>
 			<key>height</key>
-			<integer>108</integer>
+			<integer>96</integer>
 			<key>min</key>
 			<integer>0</integer>
 			<key>max</key>
@@ -908,12 +982,16 @@
 			<true/>
 			<key>ulpHelp</key>
 			<string>Quầng sáng quanh hình. Giá trị cao tốn thêm hiệu năng.</string>
+			<key>id</key>
+			<string>ulp.VisualGlow</string>
 		</dict>
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>label</key>
 			<string>POSITION &amp; SIZE</string>
+			<key>id</key>
+			<string>ulp.POSITION &amp; SIZE</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -936,6 +1014,8 @@
 			<integer>80</integer>
 			<key>showValue</key>
 			<true/>
+			<key>id</key>
+			<string>ulp.VisualOffsetX</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -958,6 +1038,8 @@
 			<integer>80</integer>
 			<key>showValue</key>
 			<true/>
+			<key>id</key>
+			<string>ulp.VisualOffsetY</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -980,6 +1062,8 @@
 			<integer>2</integer>
 			<key>showValue</key>
 			<true/>
+			<key>id</key>
+			<string>ulp.VisualWidth</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -1002,6 +1086,8 @@
 			<integer>2</integer>
 			<key>showValue</key>
 			<true/>
+			<key>id</key>
+			<string>ulp.VisualHeight</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -1024,6 +1110,8 @@
 			<real>1.8</real>
 			<key>showValue</key>
 			<true/>
+			<key>id</key>
+			<string>ulp.VisualScale</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -1046,6 +1134,8 @@
 			<integer>180</integer>
 			<key>showValue</key>
 			<true/>
+			<key>id</key>
+			<string>ulp.VisualRotation</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -1058,6 +1148,8 @@
 			<string>com.luoplayer.ultimatelockscreenplayer</string>
 			<key>default</key>
 			<false/>
+			<key>id</key>
+			<string>ulp.VisualFlipX</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -1070,6 +1162,8 @@
 			<string>com.luoplayer.ultimatelockscreenplayer</string>
 			<key>default</key>
 			<false/>
+			<key>id</key>
+			<string>ulp.VisualFlipY</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -1078,6 +1172,8 @@
 			<string>Reset position &amp; size</string>
 			<key>buttonAction</key>
 			<string>resetPosition</string>
+			<key>id</key>
+			<string>ulp.resetPosition</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -1086,6 +1182,8 @@
 			<string>ZOOM</string>
 			<key>footerText</key>
 			<string>Zoom đọc dải âm riêng. Scale thay đổi kích thước cơ sở; Zoom làm visualizer nảy theo âm thanh.</string>
+			<key>id</key>
+			<string>ulp.ZOOM</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -1108,6 +1206,8 @@
 			<real>0.4</real>
 			<key>showValue</key>
 			<true/>
+			<key>id</key>
+			<string>ulp.VisualZoomStrength</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -1132,6 +1232,8 @@
 			<true/>
 			<key>ulpInteger</key>
 			<true/>
+			<key>id</key>
+			<string>ulp.ZoomFirstBand</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -1156,6 +1258,8 @@
 			<true/>
 			<key>ulpInteger</key>
 			<true/>
+			<key>id</key>
+			<string>ulp.ZoomLastBand</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -1164,6 +1268,8 @@
 			<string>AUDIO &amp; PERFORMANCE</string>
 			<key>footerText</key>
 			<string>Dải 0–63 của bộ lấy mẫu. Preview cập nhật sau khoảng 1 giây; Apply áp dụng trên màn hình khóa.</string>
+			<key>id</key>
+			<string>ulp.AUDIO &amp; PERFORMANCE</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -1188,6 +1294,8 @@
 			<true/>
 			<key>ulpInteger</key>
 			<true/>
+			<key>id</key>
+			<string>ulp.VisualFirstBand</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -1212,6 +1320,8 @@
 			<true/>
 			<key>ulpInteger</key>
 			<true/>
+			<key>id</key>
+			<string>ulp.VisualLastBand</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -1236,6 +1346,8 @@
 			<true/>
 			<key>ulpInteger</key>
 			<true/>
+			<key>id</key>
+			<string>ulp.VisualFPS</string>
 		</dict>
 	</array>
 </dict>

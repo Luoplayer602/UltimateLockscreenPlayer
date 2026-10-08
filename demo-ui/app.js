@@ -50,13 +50,40 @@ function chooseTrack(index) {
   $('songTitle').textContent=files[currentIndex].name.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ');
   $('songArtist').textContent='Nhạc của bạn';resetAnalysis();status(`Đã chọn: ${files[currentIndex].name}`);
 }
+function coverArtwork(image) {
+  const width=image.naturalWidth||image.width,height=image.naturalHeight||image.height;
+  const sample=document.createElement('canvas');sample.width=sample.height=96;
+  const scan=sample.getContext('2d',{willReadFrequently:true});scan.drawImage(image,0,0,96,96);
+  const pixels=scan.getImageData(0,0,96,96).data;
+  const hasPicture=(vertical,index)=>{
+    let lit=0;
+    for(let p=16;p<80;p++){
+      const x=vertical?p:index,y=vertical?index:p,k=(y*96+x)*4;
+      if(Math.max(pixels[k],pixels[k+1],pixels[k+2])>44)lit++;
+    }
+    return lit>=8;
+  };
+  const bounds=vertical=>{
+    let start=0,end=95;
+    while(start<23&&!hasPicture(vertical,start))start++;
+    while(end>72&&!hasPicture(vertical,end))end--;
+    return [start,end];
+  };
+  const [left,right]=bounds(false),[top,bottom]=bounds(true);
+  const sx=left/96*width,sy=top/96*height,cropWidth=(right-left+1)/96*width,cropHeight=(bottom-top+1)/96*height;
+  const side=Math.min(cropWidth,cropHeight);
+  const output=document.createElement('canvas');output.width=output.height=Math.max(1,Math.min(1024,Math.round(side)));
+  output.getContext('2d').drawImage(image,sx+(cropWidth-side)/2,sy+(cropHeight-side)/2,side,side,0,0,output.width,output.height);
+  return output;
+}
 function applyArtwork(url) {
   const image=new Image();
   image.onload=()=>{
-    const sample=document.createElement('canvas');sample.width=sample.height=24;const ctx=sample.getContext('2d');ctx.drawImage(image,0,0,24,24);
+    const cropped=coverArtwork(image);
+    const sample=document.createElement('canvas');sample.width=sample.height=24;const ctx=sample.getContext('2d');ctx.drawImage(cropped,0,0,24,24);
     const pixels=ctx.getImageData(0,0,24,24).data;
     artworkColors=[[5,5],[12,12],[19,19]].map(([x,y])=>{const k=(y*24+x)*4;return `#${[pixels[k],pixels[k+1],pixels[k+2]].map(v=>Math.max(60,v).toString(16).padStart(2,'0')).join('')}`;});
-    sceneRenderer.setArtwork(image,artworkColors);$('thumb').style.backgroundImage=`url("${url}")`;$('thumb').classList.add('has-image');window.refreshDemo();
+    sceneRenderer.setArtwork(image,artworkColors,cropped);$('thumb').style.backgroundImage=`url("${cropped.toDataURL('image/png')}")`;$('thumb').classList.add('has-image');window.refreshDemo();
   };
   image.onerror=()=>status('Không đọc được artwork. Hãy chọn một ảnh khác.');image.src=url;
 }
@@ -68,6 +95,8 @@ function updateProgress() {
 function paint(dt=.016,clock=performance.now()/1000) {
   const p=currentProfile();
   sceneRenderer.render(window.demoVisualMode||'waveform',p,lastAudioFrame,dt,window.demoEnabled!==false&&window.demoVisualEnabled!==false,clock);
+  const coverZoom=ULPRenderer.coverMotion(p,lastAudioFrame,clock).scale;
+  $('lyricsOverlay').style.setProperty('--cover-motion-scale',String(coverZoom));
   $('player').hidden=window.demoEnabled===false;
   if(window.updateSettingsPreview)window.updateSettingsPreview();
 }
@@ -82,6 +111,7 @@ function tick(timestamp=0) {
     if(lastAudioFrame.rms<.00001 && timestamp-playStartedAt>3000 && location.protocol==='file:')status('Chưa nhận được mẫu âm thanh. Khi mở file HTML trực tiếp, hãy chọn bài bằng Nhạc thử; hoặc mở demo qua máy chủ localhost.');
   } else lastAudioFrame=processor.idle(audio.currentTime);
   if(timestamp-lastPaintAt>=1000/Number(p.fps||60)) {paint(Math.min(.1,(timestamp-lastPaintAt)/1000),timestamp/1000);lastPaintAt=timestamp;}
+  if(window.demoLyrics)window.demoLyrics.updateTime();
 }
 $('audioFiles').addEventListener('change',event=>{files=Array.from(event.target.files||[]);if(files.length)chooseTrack(0);});
 $('artworkFile').addEventListener('change',event=>{const file=event.target.files?.[0];if(!file)return;const old=artworkUrl;artworkUrl=URL.createObjectURL(file);applyArtwork(artworkUrl);if(old)URL.revokeObjectURL(old);});
