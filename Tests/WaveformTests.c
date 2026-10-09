@@ -29,6 +29,12 @@ int main(void) {
         assert(upper == -lower && lower >= 6);
         assert(ULPWaveformOffset(x,0,95,false,0,false)==0);
     }
+    assert(fabsf(ULPSiriOffset(1,0,1,95,0)) < 1e-5f);
+    assert(fabsf(ULPSiriOffset(1,1,1,95,0)) < 1e-3f);
+    assert(fabsf(ULPSiriOffset(1,.5f,1,95,0)-95) < 1e-4f);
+    assert(fabsf(ULPSiriOffset(-1,.5f,1,95,1)+95*.78f) < 1e-4f);
+    assert(fabsf(ULPSiriOffset(1,.5f,1,95,2)-95*.56f) < 1e-4f);
+    assert(ULPSiriOffset(1,.2f,0,95,0) == 0);
     a=(ULPWaveformState){0};
     for(int i=0;i<60;i++) ULPWaveformUpdate(&a,&frame,.7f,1.f/60);
     for(int i=0;i<30;i++) ULPWaveformUpdate(&b,&frame,.7f,1.f/30);

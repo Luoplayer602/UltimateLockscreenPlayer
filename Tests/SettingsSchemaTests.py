@@ -46,12 +46,22 @@ assert 'Rows' not in bar_by_key and 'DotSize' not in bar_by_key
 assert not any(item.get('label') == 'SHAPE' for item in bar)
 print('SettingsSchemaTests OK: 10 mode configurations')
 
-for mode in (5, 9):
+for mode in (4, 5, 9):
     visible = [item for item in items if 'ulpModes' not in item or mode in item['ulpModes']]
     by_key = {item['key']:item for item in visible if 'key' in item}
     assert all(key in by_key for key in ('Thickness','WaveAmplitude','VisualPoints','SpectrumFill','FillOpacity','WaveSmoothing'))
     assert 'VisualSymmetry' not in by_key and 'VisualAnimationScale' not in by_key
     assert 'VisualFirstBand' not in by_key and 'VisualLastBand' not in by_key
     assert ('CentreGap' in by_key) == (mode == 9)
-    assert ('SmoothCurve' in by_key) == (mode == 5)
+    assert ('SmoothCurve' in by_key) == (mode != 9)
     assert by_key['WaveSmoothing']['default'] == 0
+    if mode == 4:
+        assert 'VisualAnimationScale' not in by_key
+        assert 'VisualFirstBand' not in by_key and 'VisualLastBand' not in by_key
+
+spectro = [item for item in items if 'ulpModes' not in item or 6 in item['ulpModes']]
+spectro_keys = {item['key'] for item in spectro if 'key' in item}
+assert {'InnerRadius', 'RadialBarLength', 'RadialBarThickness', 'RotationSpeed',
+        'RadialSymmetry', 'GrowInward', 'RoundedCaps', 'ShowInnerRing',
+        'RingOpacity', 'PeakCaps', 'PeakCapsType', 'HideVisualizerButPeakCaps'} <= spectro_keys
+assert 'VisualAnimationScale' not in spectro_keys and 'VisualSymmetry' not in spectro_keys

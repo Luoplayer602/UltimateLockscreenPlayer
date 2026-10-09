@@ -36,3 +36,23 @@ Người dùng đã nghiệm thu 0.1.0-54. Bước tiếp theo bổ sung Wavefor
 ## Tiến độ — 0.1.0-56
 
 0.1.0-55 đã cài trên iPhone. Trang Mirror và Fill hoạt động sau khi đóng và mở lại Settings, nhưng người dùng báo Waveform phẳng và rung khác trước. Sửa mặc định Waveform smoothing về 0 và giảm thời gian làm mượt khi chủ động tăng slider; cần nghiệm thu lại Preview và màn hình khóa trên iPhone.
+
+## Tiến độ — 0.1.0-57
+
+Người dùng đã nghiệm thu lại Waveform trên 0.1.0-56. Siri chuyển sang cùng nguồn PCM và hình học với Waveform, có ba lớp giảm biên độ từ trước ra sau và envelope thu về đường giữa ở hai đầu. Settings Siri giờ có Thickness, Amplitude, Detail, Smooth curve, Fill và Waveform smoothing; các mục spectrum/Shape cũ không còn hiện với Siri. Preview và màn hình khóa dùng cùng renderer. Chờ kiểm tra bản 0.1.0-57 trên iPhone.
+
+## Tiến độ — 0.1.0-58
+
+Người dùng đã nghiệm thu Siri 0.1.0-57. Spectro native nay có thanh phổ, bán kính trong, chiều dài/độ dày, tốc độ xoay, đối xứng theo đoạn, hướng phát triển, vòng trong và peak caps dạng line/dot. Các điều khiển này có trong Settings và dùng chung renderer với Preview. Khi Pause, một timer cấp khung im lặng tới khi peak caps hạ về đường cơ sở rồi mới đóng băng; sau 15 giây visualizer/nền mờ dần và Player ULP giữ nguyên nếu phiên Now Playing còn tồn tại. Player nhận thao tác chạm để mở ứng dụng phát qua LaunchServices; chỉ báo âm lượng nghe thay đổi hệ thống. Đã build và test cục bộ; các hành vi riêng SpringBoard cần xác nhận trên iPhone. Xem `NATIVE_SPECTRO_LOCKSCREEN_CONTRACT.md`.
+
+## Nghiệm thu 0.1.0-58 và bước kế tiếp
+
+Spectro, peak caps và chuyển cảnh đạt. Còn lỗi đồng hồ sau khi tắt/bật màn hình, Player/artwork sau khi khởi động lại YouTube Music, chạm Player không mở app và HUD âm lượng không hiện. Kế hoạch sửa đồng thời thêm HUD riêng ở `NATIVE_LOCKSCREEN_RECOVERY_PLAN.md`.
+
+## Sau nghiệm thu ban đầu 0.1.0-60
+
+Người dùng xác nhận 0.1.0-60 hoạt động ổn trong lần nghiệm thu đầu. Giữ gói và mã nguồn bản này làm mốc để so sánh; tiếp tục theo dõi khi dùng lâu, nhất là nhiều lần khóa/mở màn hình, đổi bài, đóng/mở ứng dụng nhạc, cuộn Player, thay đổi âm lượng ở hai đầu dải và tiêu thụ tài nguyên. Nếu xuất hiện lỗi, ghi đúng chuỗi thao tác và đọc `/var/mobile/Library/Logs/ULP.log` trước khi thay đổi thêm vòng đời màn hình khóa.
+
+Lát triển khai tiếp theo là **Circular waveform**. Dùng cùng dữ liệu waveform có dấu và cùng `ULPVisualizerView` ở Preview/màn hình khóa. Bổ sung `Detail`, `Inner radius`, `Amplitude`, `Thickness`, `Rotation speed`, `Fill ring`, `Fill opacity` với khóa riêng của mode, giá trị mặc định và giới hạn rõ ràng; Settings chỉ hiện các điều khiển có tác dụng. Cấu hình của các mode hiện tại phải được giữ nguyên khi đổi qua lại và sau Apply. Kiểm tra hình vòng ở đoạn yên lặng, âm lượng lớn, đổi bài và Pause; đo FPS trên iPhone 6s trước khi nghiệm thu.
+
+Sau khi Circular waveform đạt, triển khai **Smooth spectro** từ dữ liệu spectrum. Các nhóm dùng chung như màu, nền, Trail, cover và Beat motion tiếp tục theo lát nhỏ sau hai mode tròn này. Lyrics native vẫn tạm dừng theo quyết định đã chốt.

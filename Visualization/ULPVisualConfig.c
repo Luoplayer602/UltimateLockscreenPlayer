@@ -30,6 +30,9 @@ ULPVisualConfig ULPVisualConfigDefault(void) {
         .unlitOpacity = 0.08f, .thickness = 2, .fillOpacity = 0.2f,
         .automaticColor = true,
         .waveAmplitude = 1, .waveSmoothing = 0, .centreGap = 12, .smoothCurve = true,
+        .innerRadius = 0.38f, .radialBarLength = 0.45f,
+        .radialBarThickness = 2, .radialSymmetry = 1,
+        .roundedCaps = true, .showInnerRing = true, .ringOpacity = 0.4f,
     };
 }
 
@@ -77,11 +80,20 @@ ULPVisualConfig ULPVisualConfigNormalize(ULPVisualConfig config) {
     config.dotSize = ULPBound(config.dotSize, 1, 16);
     config.unlitOpacity = ULPBound(config.unlitOpacity, 0, 1);
     config.thickness = ULPBound(config.thickness, 0.5f,
-        config.mode == ULPVisualModeWave || config.mode == ULPVisualModeMirror ? 12 : 8);
+        config.mode == ULPVisualModeWave || config.mode == ULPVisualModeMirror ||
+        config.mode == ULPVisualModeSiri ? 12 : 8);
     config.waveAmplitude = ULPBound(config.waveAmplitude, 0, 2);
     config.waveSmoothing = ULPBound(config.waveSmoothing, 0, 1);
     config.centreGap = ULPBound(config.centreGap, 0, 80);
     config.fillOpacity = ULPBound(config.fillOpacity, 0, 1);
+    config.innerRadius = ULPBound(config.innerRadius, 0.1f, 0.8f);
+    config.radialBarLength = ULPBound(config.radialBarLength, 0, 1);
+    config.radialBarThickness = ULPBound(config.radialBarThickness, 0.5f, 12);
+    config.rotationSpeed = ULPBound(config.rotationSpeed, -90, 90);
+    if (config.radialSymmetry < 1) config.radialSymmetry = 1;
+    if (config.radialSymmetry > 12) config.radialSymmetry = 12;
+    config.ringOpacity = ULPBound(config.ringOpacity, 0, 1);
+    if (config.peakCapsType > 1) config.peakCapsType = 0;
     return config;
 }
 
@@ -90,7 +102,9 @@ ULPVisualConfig ULPVisualConfigDefaultForMode(ULPVisualMode mode) {
     config.mode = mode;
     if (mode == ULPVisualModeBar || mode == ULPVisualModeEqualizer) config.points = 32;
     if (mode == ULPVisualModeDotMatrix) { config.points = 24; config.rows = 12; }
-    if (mode == ULPVisualModeWave || mode == ULPVisualModeMirror) {
+    if (mode == ULPVisualModeRadial) config.points = 64;
+    if (mode == ULPVisualModeWave || mode == ULPVisualModeMirror ||
+        mode == ULPVisualModeSiri) {
         config.thickness = 3;
         config.symmetry = ULPSymmetryNone;
     }

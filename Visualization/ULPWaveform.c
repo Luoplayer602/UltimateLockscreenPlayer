@@ -27,3 +27,11 @@ float ULPWaveformOffset(float sample, float amplitude, float extent, bool mirror
     offset = fabsf(offset) + bound(gap, 0, 80) * .5f;
     return lower ? offset : -offset;
 }
+float ULPSiriOffset(float sample, float phase, float amplitude, float extent,
+                    unsigned layer) {
+    float u = bound(phase, 0, 1);
+    float envelope = powf(fmaxf(0, sinf(u * 3.14159265358979323846f)), .65f);
+    float layerScale = 1 - fminf(layer, 2) * .22f;
+    return ULPWaveformOffset(sample, amplitude, extent, false, 0, false) *
+           envelope * layerScale;
+}

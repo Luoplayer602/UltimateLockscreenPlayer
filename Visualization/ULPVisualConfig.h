@@ -87,6 +87,17 @@ typedef struct {
     float waveSmoothing;
     float centreGap;
     bool smoothCurve;
+    float innerRadius;
+    float radialBarLength;
+    float radialBarThickness;
+    float rotationSpeed;
+    uint8_t radialSymmetry;
+    bool growInward;
+    bool roundedCaps;
+    bool showInnerRing;
+    float ringOpacity;
+    uint8_t peakCapsType; // 0 line, 1 dot.
+    bool hideVisualizerButPeakCaps;
 } ULPVisualConfig;
 
 ULPVisualConfig ULPVisualConfigDefault(void);

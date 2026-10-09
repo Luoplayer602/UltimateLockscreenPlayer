@@ -8,4 +8,6 @@ void ULPWaveformUpdate(ULPWaveformState *state, const ULPMSH2FeatureFrame *frame
 float ULPWaveformSample(const ULPWaveformState *state, float phase);
 float ULPWaveformOffset(float sample, float amplitude, float extent, bool mirror,
                         float gap, bool lower);
+float ULPSiriOffset(float sample, float phase, float amplitude, float extent,
+                    unsigned layer);
 #endif

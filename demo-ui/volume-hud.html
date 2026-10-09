@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="vi">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ULP · Volume HUD</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0e1015;color:#f5f5f7;font:15px system-ui,sans-serif;min-height:100svh;display:grid;place-items:center;padding:24px}main{display:flex;gap:40px;align-items:center;flex-wrap:wrap;justify-content:center}.phone{width:375px;height:667px;position:relative;background:radial-gradient(ellipse at 30% 25%,#414965,transparent 70%),linear-gradient(160deg,#202433,#524053);border-radius:32px;box-shadow:0 0 0 5px #292c35,0 25px 80px #0007;overflow:hidden;isolation:isolate}.status{display:flex;justify-content:space-between;padding:17px 24px;font-weight:650;font-size:12px}.visual{position:absolute;left:107px;top:255px;width:160px;height:160px;border:2px solid #c3b4df88;border-radius:50%;box-shadow:0 0 20px #c3b4df15;display:grid;place-items:center;font-size:25px;font-weight:700;color:#f2e7ff}.player{position:absolute;bottom:57px;left:16px;right:16px;padding:16px;display:flex;gap:15px;background:#161920dc;border-radius:21px;border:1px solid #ffffff25}.art{width:72px;height:72px;border-radius:12px;background:linear-gradient(135deg,#7d86ba,#9c6f9b);display:grid;place-items:center;font-size:30px}.info{flex:1;line-height:1.6}.info small{color:#b1afbd}.controls{display:flex;justify-content:space-between;margin-top:9px;padding-right:10px}.home{position:absolute;bottom:12px;left:132px;width:111px;height:4px;background:#fff;border-radius:4px}.hud{position:absolute;left:6px;top:calc(20% - 28px);width:54px;height:56px;opacity:0;transform:translateX(-64px);transition:transform .18s ease-in,opacity .18s;pointer-events:none;filter:drop-shadow(1px 2px 5px #0004)}.hud.visible{opacity:1;transform:translateX(0);transition:transform .22s ease-out,opacity .22s}.dial{display:block;width:54px;height:56px;overflow:visible}.arc{fill:none;stroke-width:3;stroke-linecap:round}.fill{stroke:#f7f7f7;stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset .18s ease-out}aside{max-width:300px}h1{font-size:23px;margin-top:0}p{color:#b3b7c3;line-height:1.65}.buttons{display:flex;gap:10px}button{border:1px solid #ffffff25;border-radius:14px;background:#242935;color:#fff;font:inherit;cursor:pointer;min-width:64px;padding:13px 18px}button:active{background:#424d63}output{display:block;margin:20px 0;color:#d3d9e8;font-variant-numeric:tabular-nums}.hint{font-size:12px}@media(max-width:430px){body{padding:12px}.phone{width:min(375px,calc(100vw - 32px));height:auto;aspect-ratio:375/667}main{gap:24px}aside{max-width:343px}}@media(prefers-reduced-motion:reduce){.hud,.hud.visible,.fill{transition:opacity .1s}}
+</style>
+<main>
+<div class="phone" aria-label="Màn hình mô phỏng">
+ <div class="status"><span>9:41</span><span>●●● ▰</span></div>
+ <div class="visual">ULP</div>
+ <div class="player"><div class="art">♫</div><div class="info"><strong>Now playing</strong><br><small>ULP · Volume preview</small><div class="controls"><span>◀◀</span><span>Ⅱ</span><span>▶▶</span></div></div></div>
+ <div class="home"></div>
+ <div class="hud" id="hud">
+  <svg class="dial" id="dial" viewBox="0 0 54 56" aria-hidden="true">
+   <circle cx="27" cy="26" r="26" fill="#171717" fill-opacity=".92"/>
+   <path class="arc" d="M15.5 45.9186 A23 23 0 1 1 38.5 45.9186" stroke="#ffffff2e"/>
+   <path class="arc fill" id="fill" pathLength="1" d="M15.5 45.9186 A23 23 0 1 1 38.5 45.9186"/>
+   <text id="value" x="27" y="30" fill="white" font-family="system-ui,sans-serif" font-size="12" font-weight="600" text-anchor="middle" style="font-variant-numeric:tabular-nums">50%</text>
+   <rect x="18" y="39" width="18" height="17" rx="6" fill="#171717"/>
+   <path d="M22 46h2l3-2.5v8L24 49h-2z" fill="#f5f5f5"/>
+   <path id="waves" d="M29 45.5q2 2 0 4" fill="none" stroke="#f5f5f5" stroke-width="1.2" stroke-linecap="round"/>
+  </svg>
+ </div>
+</div>
+<aside><h1>Âm lượng · Vòng tròn</h1><p>54 × 56 px. Tâm ở 1/5 chiều cao màn hình. Tăng xoay thuận, giảm xoay ngược rồi trở về vị trí ban đầu.</p><div class="buttons"><button id="down" aria-label="Giảm âm lượng">−</button><button id="up" aria-label="Tăng âm lượng">+</button></div><output id="level" aria-live="polite">50%</output><p class="hint">Dùng phím ↑ / ↓ hoặc các nút trên. Vòng đầy tại 100%, trống tại 0%. Tự ẩn sau khi ngừng thao tác. Đây là mô phỏng hình dáng và chuyển động; không đổi âm lượng máy.</p></aside>
+</main>
+<script>
+let volume=.5,timer,spin;
+const hud=document.querySelector('#hud'),dial=document.querySelector('#dial'),fill=document.querySelector('#fill'),value=document.querySelector('#value'),level=document.querySelector('#level');
+function change(delta){volume=Math.max(0,Math.min(1,volume+delta));const label=Math.round(volume*100)+'%';value.textContent=level.textContent=label;fill.style.strokeDashoffset=1-volume;document.querySelector('#waves').style.opacity=volume?1:0;hud.classList.add('visible');if(!matchMedia('(prefers-reduced-motion:reduce)').matches){const current=getComputedStyle(dial).transform;spin?.cancel();spin=dial.animate([{transform:current,offset:0},{transform:`rotate(${delta>=0?8:-8}deg)`,offset:.25},{transform:`rotate(${delta>=0?-.7:.7}deg)`,offset:.72},{transform:'rotate(0deg)',offset:1}],{duration:300,easing:'ease-out'});}clearTimeout(timer);timer=setTimeout(()=>hud.classList.remove('visible'),1000);}
+document.querySelector('#down').onclick=()=>change(-.0625);document.querySelector('#up').onclick=()=>change(.0625);addEventListener('keydown',e=>{if(e.key==='ArrowUp'||e.key==='ArrowDown'){e.preventDefault();change(e.key==='ArrowUp'?.0625:-.0625);}});fill.style.strokeDashoffset=.5;
+</script>
+</html>

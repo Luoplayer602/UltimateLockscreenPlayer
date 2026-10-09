@@ -7,4 +7,5 @@
 @property (nonatomic) ULPVisualConfig visualConfig;
 - (void)setArtwork:(UIImage *)artwork manualColor:(UIColor *)manualColor;
 - (void)updateAudio:(ULPMSH2FeatureFrame)frame zoomLevel:(float)zoomLevel;
+- (BOOL)hasUnsettledPeakCaps;
 @end

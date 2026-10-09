@@ -10,13 +10,19 @@
     UILabel *_centerLabel;
     CAShapeLayer *_visualLayer;
     CAShapeLayer *_capsLayer;
+    CAShapeLayer *_ringLayer;
     CAShapeLayer *_unlitLayer;
     CAShapeLayer *_fillLayer;
+    CAShapeLayer *_siriBackStroke;
+    CAShapeLayer *_siriMiddleStroke;
+    CAShapeLayer *_siriBackFill;
+    CAShapeLayer *_siriMiddleFill;
     CGFloat _zoom;
     float _levels[128];
     float _peaks[128];
     ULPWaveformState _wave;
     CFTimeInterval _lastFrameTime;
+    CGFloat _radialRotation;
     UIColor *_manualColor;
     UIColor *_artworkColor;
 }
@@ -96,9 +102,23 @@ static void ULPAppendWaveLine(UIBezierPath *path, const CGPoint *points,
     _visualLayer = [CAShapeLayer layer];
     _unlitLayer = [CAShapeLayer layer];
     _fillLayer = [CAShapeLayer layer];
+    _siriBackStroke = [CAShapeLayer layer];
+    _siriMiddleStroke = [CAShapeLayer layer];
+    _siriBackFill = [CAShapeLayer layer];
+    _siriMiddleFill = [CAShapeLayer layer];
     _capsLayer = [CAShapeLayer layer];
+    _ringLayer = [CAShapeLayer layer];
     [_visualContainer.layer addSublayer:_unlitLayer];
+    [_visualContainer.layer addSublayer:_siriBackFill];
+    [_visualContainer.layer addSublayer:_siriMiddleFill];
     [_visualContainer.layer addSublayer:_fillLayer];
+    for (CAShapeLayer *layer in @[_siriBackStroke, _siriMiddleStroke]) {
+        layer.fillColor = UIColor.clearColor.CGColor;
+        layer.lineJoin = kCALineJoinRound;
+        layer.lineCap = kCALineCapRound;
+        layer.shadowRadius = 5;
+        [_visualContainer.layer addSublayer:layer];
+    }
     _visualLayer.fillColor = UIColor.clearColor.CGColor;
     _visualLayer.strokeColor = UIColor.whiteColor.CGColor;
     _visualLayer.lineWidth = 2;
@@ -107,6 +127,7 @@ static void ULPAppendWaveLine(UIBezierPath *path, const CGPoint *points,
     _visualLayer.shadowOpacity = 0.35;
     _visualLayer.shadowRadius = 5;
     [_visualContainer.layer addSublayer:_visualLayer];
+    [_visualContainer.layer addSublayer:_ringLayer];
     [_visualContainer.layer addSublayer:_capsLayer];
 
     _halo = [UIView new];
@@ -136,6 +157,9 @@ static void ULPAppendWaveLine(UIBezierPath *path, const CGPoint *points,
         memset(&_wave, 0, sizeof(_wave));
         _visualLayer.path = NULL; _capsLayer.path = NULL;
         _unlitLayer.path = NULL; _fillLayer.path = NULL;
+        _ringLayer.path = NULL;
+        _siriBackStroke.path = NULL; _siriMiddleStroke.path = NULL;
+        _siriBackFill.path = NULL; _siriMiddleFill.path = NULL;
     }
     [self updateVisualTransform];
     BOOL radial = _visualConfig.mode == ULPVisualModeCircle ||
@@ -166,9 +190,20 @@ static void ULPAppendWaveLine(UIBezierPath *path, const CGPoint *points,
     _visualLayer.fillColor = filled ?
                              color.CGColor : UIColor.clearColor.CGColor;
     _capsLayer.fillColor = color.CGColor;
+    _capsLayer.strokeColor = color.CGColor;
+    _ringLayer.fillColor = UIColor.clearColor.CGColor;
+    _ringLayer.strokeColor = [color colorWithAlphaComponent:_visualConfig.ringOpacity].CGColor;
     _unlitLayer.fillColor = [color colorWithAlphaComponent:_visualConfig.unlitOpacity].CGColor;
     _fillLayer.fillColor = [color colorWithAlphaComponent:_visualConfig.fillOpacity].CGColor;
+    _siriMiddleStroke.strokeColor = [color colorWithAlphaComponent:.75].CGColor;
+    _siriBackStroke.strokeColor = [color colorWithAlphaComponent:.5].CGColor;
+    _siriMiddleFill.fillColor = [color colorWithAlphaComponent:_visualConfig.fillOpacity * .75].CGColor;
+    _siriBackFill.fillColor = [color colorWithAlphaComponent:_visualConfig.fillOpacity * .5].CGColor;
     _visualLayer.shadowColor = color.CGColor;
+    for (CAShapeLayer *layer in @[_siriBackStroke, _siriMiddleStroke]) {
+        layer.shadowColor = color.CGColor;
+        layer.shadowOpacity = _visualConfig.glow * .7;
+    }
     _halo.layer.borderColor = [color colorWithAlphaComponent:0.28].CGColor;
     _halo.layer.shadowColor = color.CGColor;
     _halo.layer.shadowOpacity = _visualConfig.glow * 0.35;
@@ -203,7 +238,9 @@ static void ULPAppendWaveLine(UIBezierPath *path, const CGPoint *points,
     CGFloat width = CGRectGetWidth(self.bounds);
     CGFloat height = CGRectGetHeight(self.bounds);
     // Width determines the normal size; short preview cards limit it to fit.
-    BOOL waveform = _visualConfig.mode == ULPVisualModeWave || _visualConfig.mode == ULPVisualModeMirror;
+    BOOL waveform = _visualConfig.mode == ULPVisualModeWave ||
+                    _visualConfig.mode == ULPVisualModeMirror ||
+                    _visualConfig.mode == ULPVisualModeSiri;
     CGFloat side = waveform ? width * .94 : MIN(width * 0.44, height * 0.72);
     _visualContainer.bounds = CGRectMake(0, 0, side, side);
     CGFloat verticalCenter = height < 240 ? 0.50 : 0.42;
@@ -212,9 +249,15 @@ static void ULPAppendWaveLine(UIBezierPath *path, const CGPoint *points,
                                            height * verticalCenter + _visualConfig.offsetY * coordinateScale);
     _visualLayer.frame = _visualContainer.bounds;
     _capsLayer.frame = _visualContainer.bounds;
+    _ringLayer.frame = _visualContainer.bounds;
     _unlitLayer.frame = _visualContainer.bounds;
     _fillLayer.frame = _visualContainer.bounds;
-    CGFloat haloSide = side * 0.44;
+    _siriBackStroke.frame = _visualContainer.bounds;
+    _siriMiddleStroke.frame = _visualContainer.bounds;
+    _siriBackFill.frame = _visualContainer.bounds;
+    _siriMiddleFill.frame = _visualContainer.bounds;
+    CGFloat haloSide = side * (_visualConfig.mode == ULPVisualModeRadial ?
+                               _visualConfig.innerRadius * .82 : .44);
     _halo.frame = CGRectMake((side - haloSide) / 2, (side - haloSide) / 2,
                              haloSide, haloSide);
     _halo.layer.cornerRadius = haloSide / 2;
@@ -223,7 +266,9 @@ static void ULPAppendWaveLine(UIBezierPath *path, const CGPoint *points,
 }
 
 - (void)updateAudio:(ULPMSH2FeatureFrame)frame zoomLevel:(float)zoomLevel {
-    BOOL waveform = _visualConfig.mode == ULPVisualModeWave || _visualConfig.mode == ULPVisualModeMirror;
+    BOOL waveform = _visualConfig.mode == ULPVisualModeWave ||
+                    _visualConfig.mode == ULPVisualModeMirror ||
+                    _visualConfig.mode == ULPVisualModeSiri;
     if (!waveform && !(frame.featureMask & ULP_MSH2_SPECTRUM)) return;
     CFTimeInterval now = CACurrentMediaTime();
     if (now - _lastFrameTime + 0.002 < 1.0 / _visualConfig.framesPerSecond) return;
@@ -237,20 +282,27 @@ static void ULPAppendWaveLine(UIBezierPath *path, const CGPoint *points,
     UIBezierPath *caps = [UIBezierPath bezierPath];
     UIBezierPath *unlit = [UIBezierPath bezierPath];
     UIBezierPath *fill = [UIBezierPath bezierPath];
+    UIBezierPath *ring = [UIBezierPath bezierPath];
+    [CATransaction begin];
+    [CATransaction setDisableActions:YES];
     NSUInteger count = _visualConfig.points;
     ULPVisualMode mode = _visualConfig.mode;
     BOOL radial = mode == ULPVisualModeCircle || mode == ULPVisualModeDot ||
                   mode == ULPVisualModeRadial;
     for (NSUInteger i = 0; !waveform && i < count; ++i) {
         float fraction = (float)i / (radial ? count : MAX(1, count - 1));
-        float phase = ULPVisualIsSpectrum(mode) ?
+        float phase = mode == ULPVisualModeRadial ?
+                      (_visualConfig.radialSymmetry == 1 ? fraction :
+                       fabsf(2 * fmodf(fraction * _visualConfig.radialSymmetry, 1) - 1)) :
+                      ULPVisualIsSpectrum(mode) ?
                       ULPSpectrumFrequencyPhase(fraction, _visualConfig.mirror, _visualConfig.reverse) :
                       radial ? ULPSpectrumPhase(fraction, _visualConfig.symmetry) :
                       ((_visualConfig.symmetry & ULPSymmetryVertical) ?
                        2 * fminf(fraction, 1 - fraction) : fraction);
         float position = _visualConfig.firstBand +
                          phase * (_visualConfig.lastBand - _visualConfig.firstBand) *
-                         (ULPVisualIsSpectrum(mode) ? _visualConfig.frequencyRange : 1);
+                         ((ULPVisualIsSpectrum(mode) || mode == ULPVisualModeRadial) ?
+                          _visualConfig.frequencyRange : 1);
         float target = (ULPSampleSpectrum(frame, position - 0.6f) +
                         ULPSampleSpectrum(frame, position) +
                         ULPSampleSpectrum(frame, position + 0.6f)) / 3;
@@ -261,30 +313,98 @@ static void ULPAppendWaveLine(UIBezierPath *path, const CGPoint *points,
     if (waveform) {
         ULPWaveformUpdate(&_wave, &frame, _visualConfig.waveSmoothing, dt);
         BOOL mirror = mode == ULPVisualModeMirror;
+        BOOL siri = mode == ULPVisualModeSiri;
         CGPoint upper[128], lower[128];
         CGFloat usable = side * .9;
         CGFloat coordinateScale = side / 376.0;
-        for (NSUInteger i = 0; i < count; ++i) {
-            float phase = (float)i / MAX(1, count - 1);
-            float sample = ULPWaveformSample(&_wave, phase);
-            CGFloat x = center - usable / 2 + phase * usable;
-            upper[i] = CGPointMake(x, center + ULPWaveformOffset(sample,
-                _visualConfig.waveAmplitude, 94, mirror, _visualConfig.centreGap, false) * coordinateScale);
-            lower[count-1-i] = CGPointMake(x, center + ULPWaveformOffset(sample,
-                _visualConfig.waveAmplitude, 94, true, _visualConfig.centreGap, true) * coordinateScale);
-        }
-        BOOL smooth = mirror || _visualConfig.smoothCurve;
-        ULPAppendWaveLine(path, upper, count, smooth, NO);
-        if (mirror) ULPAppendWaveLine(path, lower, count, smooth, NO);
-        if (_visualConfig.fill) {
-            ULPAppendWaveLine(fill, upper, count, smooth, NO);
-            if (mirror) ULPAppendWaveLine(fill, lower, count, smooth, YES);
-            else {
-                [fill addLineToPoint:CGPointMake(upper[count-1].x, center)];
-                [fill addLineToPoint:CGPointMake(upper[0].x, center)];
+        if (siri) {
+            for (unsigned layer = 0; layer < 3; ++layer) {
+                UIBezierPath *stroke = layer == 0 ? path : [UIBezierPath bezierPath];
+                UIBezierPath *layerFill = layer == 0 ? fill : [UIBezierPath bezierPath];
+                for (NSUInteger i = 0; i < count; ++i) {
+                    float phase = (float)i / MAX(1, count - 1);
+                    float sample = ULPWaveformSample(&_wave, phase);
+                    CGFloat x = center - usable / 2 + phase * usable;
+                    upper[i] = CGPointMake(x, center + ULPSiriOffset(sample, phase,
+                        _visualConfig.waveAmplitude, 94, layer) * coordinateScale);
+                }
+                ULPAppendWaveLine(stroke, upper, count, _visualConfig.smoothCurve, NO);
+                if (_visualConfig.fill) {
+                    ULPAppendWaveLine(layerFill, upper, count, _visualConfig.smoothCurve, NO);
+                    [layerFill addLineToPoint:CGPointMake(upper[count-1].x, center)];
+                    [layerFill addLineToPoint:CGPointMake(upper[0].x, center)];
+                    [layerFill closePath];
+                }
+                if (layer == 1) {
+                    _siriMiddleStroke.path = stroke.CGPath;
+                    _siriMiddleFill.path = layerFill.CGPath;
+                } else if (layer == 2) {
+                    _siriBackStroke.path = stroke.CGPath;
+                    _siriBackFill.path = layerFill.CGPath;
+                }
             }
-            [fill closePath];
+        } else {
+            for (NSUInteger i = 0; i < count; ++i) {
+                float phase = (float)i / MAX(1, count - 1);
+                float sample = ULPWaveformSample(&_wave, phase);
+                CGFloat x = center - usable / 2 + phase * usable;
+                upper[i] = CGPointMake(x, center + ULPWaveformOffset(sample,
+                    _visualConfig.waveAmplitude, 94, mirror, _visualConfig.centreGap, false) * coordinateScale);
+                lower[count-1-i] = CGPointMake(x, center + ULPWaveformOffset(sample,
+                    _visualConfig.waveAmplitude, 94, true, _visualConfig.centreGap, true) * coordinateScale);
+            }
+            BOOL smooth = mirror || _visualConfig.smoothCurve;
+            ULPAppendWaveLine(path, upper, count, smooth, NO);
+            if (mirror) ULPAppendWaveLine(path, lower, count, smooth, NO);
+            if (_visualConfig.fill) {
+                ULPAppendWaveLine(fill, upper, count, smooth, NO);
+                if (mirror) ULPAppendWaveLine(fill, lower, count, smooth, YES);
+                else {
+                    [fill addLineToPoint:CGPointMake(upper[count-1].x, center)];
+                    [fill addLineToPoint:CGPointMake(upper[0].x, center)];
+                }
+                [fill closePath];
+            }
         }
+    } else if (mode == ULPVisualModeRadial) {
+        CGFloat radius = side * _visualConfig.innerRadius / 2;
+        CGFloat maxLength = side * .25 * _visualConfig.radialBarLength;
+        CGFloat gap = side * .01;
+        _radialRotation = fmod(_radialRotation + dt * _visualConfig.rotationSpeed * M_PI / 180, M_PI * 2);
+        BOOL drawBars = !(_visualConfig.hideVisualizerButPeakCaps && _visualConfig.peakCaps);
+        for (NSUInteger i = 0; i < count; ++i) {
+            CGFloat angle = (CGFloat)i / count * M_PI * 2 - M_PI_2 + _radialRotation;
+            CGFloat direction = _visualConfig.growInward ? -1 : 1;
+            CGFloat length = _levels[i] * maxLength;
+            CGFloat end = radius + direction * length;
+            if (drawBars) {
+                CGPoint startPoint = CGPointMake(center + cos(angle) * radius,
+                                                 center + sin(angle) * radius);
+                CGPoint endPoint = CGPointMake(center + cos(angle) * end,
+                                               center + sin(angle) * end);
+                [path moveToPoint:startPoint];
+                [path addLineToPoint:endPoint];
+            }
+            if (_visualConfig.peakCaps) {
+                _peaks[i] = MAX(_levels[i], _peaks[i] - dt * 1.15);
+                if (_peaks[i] <= .001) continue;
+                CGFloat capRadius = radius + direction * (_peaks[i] * maxLength + gap);
+                CGPoint cap = CGPointMake(center + cos(angle) * capRadius,
+                                          center + sin(angle) * capRadius);
+                if (_visualConfig.peakCapsType == 1) {
+                    CGFloat dot = MAX(1, _visualConfig.capThickness * 1.5);
+                    [caps appendPath:[UIBezierPath bezierPathWithOvalInRect:
+                        CGRectMake(cap.x - dot/2, cap.y - dot/2, dot, dot)]];
+                } else {
+                    CGFloat half = MAX(1, _visualConfig.radialBarThickness * 1.5);
+                    [caps moveToPoint:CGPointMake(cap.x - sin(angle)*half, cap.y + cos(angle)*half)];
+                    [caps addLineToPoint:CGPointMake(cap.x + sin(angle)*half, cap.y - cos(angle)*half)];
+                }
+            }
+        }
+        if (_visualConfig.showInnerRing && drawBars)
+            [ring appendPath:[UIBezierPath bezierPathWithArcCenter:CGPointMake(center, center)
+                radius:radius startAngle:0 endAngle:M_PI*2 clockwise:YES]];
     } else if (radial) {
         for (NSUInteger i = 0; i < count; ++i) {
             CGFloat angle = (CGFloat)i / count * (CGFloat)(M_PI * 2) - (CGFloat)M_PI_2;
@@ -345,7 +465,7 @@ static void ULPAppendWaveLine(UIBezierPath *path, const CGPoint *points,
                 }
             }
             if (_visualConfig.peakCaps && mode != ULPVisualModeDotMatrix) {
-                _peaks[i] = MAX(amplitude, _peaks[i] - dt * availableHeight * 0.45);
+                _peaks[i] = MAX(amplitude, _peaks[i] - dt * availableHeight * 1.15);
                 CGFloat capY = baseY - _peaks[i];
                 if (_visualConfig.growFrom == 1) capY = center - _peaks[i] / 2;
                 if (_visualConfig.growFrom == 2) capY = center - availableHeight / 2 + _peaks[i];
@@ -378,7 +498,7 @@ static void ULPAppendWaveLine(UIBezierPath *path, const CGPoint *points,
             }
         }
     } else {
-        NSUInteger layers = mode == ULPVisualModeSiri ? 3 : 1;
+        NSUInteger layers = 1;
         CGFloat usable = side * 0.9;
         for (NSUInteger layer = 0; layer < layers; ++layer) {
             CGPoint points[128];
@@ -389,8 +509,7 @@ static void ULPAppendWaveLine(UIBezierPath *path, const CGPoint *points,
                                 2 * _levels[i] +
                                 _levels[i + 1 < count ? i + 1 : i]) * 0.25f;
                 CGFloat sample = sin(phase * (M_PI * 4) + now * (3 + layer) + layer * 2) * smooth;
-                CGFloat y = center + sample * side * _visualConfig.animationScale *
-                                     (mode == ULPVisualModeSiri ? (1.0 + layer * 0.3) : 1.7);
+                CGFloat y = center + sample * side * _visualConfig.animationScale * 1.7;
                 points[i] = CGPointMake(x, y);
             }
             ULPAppendSmoothLine(path, points, count);
@@ -401,21 +520,43 @@ static void ULPAppendWaveLine(UIBezierPath *path, const CGPoint *points,
             }
         }
     }
-    [CATransaction begin];
-    [CATransaction setDisableActions:YES];
     _visualLayer.path = path.CGPath;
     _capsLayer.path = caps.CGPath;
     _unlitLayer.path = unlit.CGPath;
     _fillLayer.path = fill.CGPath;
-    _visualLayer.lineWidth = (waveform || mode == ULPVisualModeLine) ? _visualConfig.thickness :
-        (mode == ULPVisualModeSiri ? 2.8 : 2.0);
-    if (waveform) _visualLayer.lineWidth *= side / 376.0;
+    _ringLayer.path = ring.CGPath;
+    _ringLayer.lineWidth = MAX(0.5, _visualConfig.radialBarThickness * 0.6);
+    _ringLayer.strokeColor = [[_visualConfig.automaticColor ? (_artworkColor ?: UIColor.whiteColor) :
+        (_manualColor ?: UIColor.whiteColor) colorWithAlphaComponent:_visualConfig.ringOpacity] CGColor];
+    _capsLayer.lineWidth = _visualConfig.capThickness;
+    _capsLayer.lineCap = kCALineCapRound;
+    _visualLayer.lineWidth = (waveform || mode == ULPVisualModeLine) ? _visualConfig.thickness : 2.0;
+    _visualLayer.lineCap = kCALineCapButt;
+    if (mode == ULPVisualModeRadial) {
+        _visualLayer.lineWidth = _visualConfig.radialBarThickness;
+        _visualLayer.lineCap = _visualConfig.roundedCaps ? kCALineCapRound : kCALineCapButt;
+    }
+    if (waveform) {
+        _visualLayer.lineWidth *= side / 376.0;
+        _siriBackStroke.lineWidth = _visualLayer.lineWidth;
+        _siriMiddleStroke.lineWidth = _visualLayer.lineWidth;
+    }
     _visualLayer.shadowOpacity = _visualConfig.glow;
     CGFloat targetZoom = 1 + ULPClampLevel(zoomLevel) * _visualConfig.zoomStrength;
     CGFloat response = 1 - pow(1 - (targetZoom > _zoom ? 0.52 : 0.19), dt * 60);
     _zoom += (targetZoom - _zoom) * response;
     [self updateVisualTransform];
     [CATransaction commit];
+}
+
+- (BOOL)hasUnsettledPeakCaps {
+    if (!_visualConfig.peakCaps) return NO;
+    NSUInteger count = _visualConfig.points;
+    CGFloat baseline = _visualConfig.mode == ULPVisualModeRadial ? 0 : _visualConfig.minimumHeight;
+    for (NSUInteger i = 0; i < count; ++i)
+        if (_peaks[i] > baseline + (_visualConfig.mode == ULPVisualModeRadial ? .001 : .02))
+            return YES;
+    return NO;
 }
 
 @end

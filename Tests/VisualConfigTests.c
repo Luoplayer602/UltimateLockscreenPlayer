@@ -55,6 +55,11 @@ int main(void) {
     assert(strcmp(ULPVisualModeID(ULPVisualModeDot), "dotted-orbit") == 0);
     assert(ULPVisualConfigDefaultForMode(ULPVisualModeEqualizer).points == 32);
     assert(ULPVisualConfigDefaultForMode(ULPVisualModeDotMatrix).rows == 12);
+    ULPVisualConfig siri = ULPVisualConfigDefaultForMode(ULPVisualModeSiri);
+    assert(siri.thickness == 3 && siri.waveAmplitude == 1);
+    assert(siri.symmetry == ULPSymmetryNone && siri.smoothCurve);
+    siri.thickness = 15;
+    assert(ULPVisualConfigNormalize(siri).thickness == 12);
 
     // Mirroring centres bass; reversing then centres treble.
     assert(ULPSpectrumFrequencyPhase(0.5f, true, false) == 0);
@@ -83,6 +88,16 @@ int main(void) {
     wave.waveAmplitude = 99; wave.waveSmoothing = NAN; wave.centreGap = -3; wave.thickness = 15;
     wave = ULPVisualConfigNormalize(wave);
     assert(wave.waveAmplitude == 2 && wave.waveSmoothing == 0 && wave.centreGap == 0 && wave.thickness == 12);
+    ULPVisualConfig spectro = ULPVisualConfigDefaultForMode(ULPVisualModeRadial);
+    assert(spectro.innerRadius == .38f && spectro.radialBarLength == .45f);
+    assert(spectro.radialSymmetry == 1 && spectro.showInnerRing && spectro.roundedCaps);
+    spectro.innerRadius = 2; spectro.radialBarLength = -1;
+    spectro.radialBarThickness = 50; spectro.rotationSpeed = -200;
+    spectro.radialSymmetry = 0; spectro.peakCapsType = 4;
+    spectro = ULPVisualConfigNormalize(spectro);
+    assert(spectro.innerRadius == .8f && spectro.radialBarLength == 0);
+    assert(spectro.radialBarThickness == 12 && spectro.rotationSpeed == -90);
+    assert(spectro.radialSymmetry == 1 && spectro.peakCapsType == 0);
     puts("VisualConfigTests OK");
     return 0;
 }

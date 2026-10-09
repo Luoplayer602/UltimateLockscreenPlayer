@@ -10,6 +10,8 @@ Mở địa chỉ được in sau `ULP demo UI:` (thường là **http://127.0.0
 
 ## Thao tác
 
+- Mở `volume-hud.html` để thử riêng thiết kế HUD âm lượng 0.1.0-60: nút +/− hoặc phím ↑/↓. Mô phỏng này không thay cấu hình demo hay âm lượng máy.
+
 - Nút Home tròn chuyển giữa màn hình khóa và Settings. Apply lưu cấu hình và trở về màn hình khóa giả lập.
 - Visualizer → Modes có 10 mode; mỗi mode lưu cấu hình riêng. Switch, select, colour và reset cập nhật ngay, giữ vị trí cuộn.
 - Preview cố định là phần phóng gần của chính khung đang vẽ trên màn hình khóa. Preview toàn cảnh giữ nguyên tỷ lệ màn hình dọc. Cả hai sao chép cùng canvas; nền, cover, waveform và chuyển động không được tính lại riêng.

@@ -29,7 +29,7 @@ static void ULPFindArtworkInView(UIView *view, UIView *host, UIView *excluded,
         ULPFindArtworkInView(child, host, excluded, width, height, best, bestScore);
 }
 
-@interface ULPLockScreenView () {
+@interface ULPLockScreenView () <UIGestureRecognizerDelegate> {
     UIView *_card;
     UIImageView *_thumbnail;
     UILabel *_title;
@@ -61,6 +61,11 @@ static void ULPFindArtworkInView(UIView *view, UIView *host, UIView *excluded,
     _card.layer.borderColor = [[UIColor whiteColor] colorWithAlphaComponent:0.22].CGColor;
     _card.layer.borderWidth = 1;
     [self addSubview:_card];
+    UITapGestureRecognizer *openTap = [[UITapGestureRecognizer alloc] initWithTarget:self
+                                                                            action:@selector(openSourceTapped:)];
+    openTap.delegate = self;
+    openTap.cancelsTouchesInView = NO;
+    [_card addGestureRecognizer:openTap];
 
     _thumbnail = [[UIImageView alloc] initWithFrame:CGRectZero];
     _thumbnail.contentMode = UIViewContentModeScaleAspectFill;
@@ -120,10 +125,25 @@ static void ULPFindArtworkInView(UIView *view, UIView *host, UIView *excluded,
     if (self.commandHandler) self.commandHandler(sender.tag);
 }
 
+- (void)openSourceTapped:(UITapGestureRecognizer *)recognizer {
+    if (recognizer.state == UIGestureRecognizerStateRecognized && self.openSourceHandler)
+        self.openSourceHandler();
+}
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer
+       shouldReceiveTouch:(UITouch *)touch {
+    for (UIView *view = touch.view; view && view != _card; view = view.superview)
+        if ([view isKindOfClass:[UIButton class]]) return NO;
+    return YES;
+}
+
 - (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
     if (self.hidden || self.alpha < 0.01) return nil;
     UIView *target = [super hitTest:point withEvent:event];
-    return [target isKindOfClass:[UIButton class]] ? target : nil;
+    if ([target isKindOfClass:[UIButton class]]) return target;
+    for (UIView *view = target; view && view != self; view = view.superview)
+        if (view == _card) return target;
+    return nil;
 }
 
 - (void)layoutSubviews {

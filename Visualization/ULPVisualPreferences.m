@@ -124,8 +124,15 @@ ULPVisualConfig ULPLoadVisualPreferences(void) {
     BOOLEAN(fill, "SpectrumFill"); NUMBER(fillOpacity, "FillOpacity"); BOOLEAN(mirrorVertical, "MirrorVertical");
     NUMBER(waveAmplitude, "WaveAmplitude"); NUMBER(waveSmoothing, "WaveSmoothing");
     NUMBER(centreGap, "CentreGap"); BOOLEAN(smoothCurve, "SmoothCurve");
+    NUMBER(innerRadius, "InnerRadius"); NUMBER(radialBarLength, "RadialBarLength");
+    NUMBER(radialBarThickness, "RadialBarThickness"); NUMBER(rotationSpeed, "RotationSpeed");
+    BOOLEAN(growInward, "GrowInward"); BOOLEAN(roundedCaps, "RoundedCaps");
+    BOOLEAN(showInnerRing, "ShowInnerRing"); NUMBER(ringOpacity, "RingOpacity");
+    BOOLEAN(hideVisualizerButPeakCaps, "HideVisualizerButPeakCaps");
     config.growFrom = ULPByte(values, @"GrowFrom", config.growFrom, 255);
     config.rows = ULPByte(values, @"Rows", config.rows, 32);
+    config.radialSymmetry = ULPByte(values, @"RadialSymmetry", config.radialSymmetry, 12);
+    config.peakCapsType = ULPByte(values, @"PeakCapsType", config.peakCapsType, 1);
 #undef NUMBER
 #undef BOOLEAN
     return ULPVisualConfigNormalize(config);
