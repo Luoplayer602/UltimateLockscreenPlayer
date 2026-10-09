@@ -304,10 +304,10 @@ typedef Boolean (*ULPSendCommand)(NSInteger, NSDictionary *);
     if (!_player.isPlaying || !_analysisFile || !_analysisBuffer) return;
     AVAudioFramePosition position = (AVAudioFramePosition)(_player.currentTime *
                                                             _analysisFile.processingFormat.sampleRate);
-    _analysisFile.framePosition = position;
+    _analysisFile.framePosition = MAX(0, position - 1024);
     NSError *error = nil;
     if (![_analysisFile readIntoBuffer:_analysisBuffer frameCount:1024 error:&error] ||
-        _analysisBuffer.frameLength < 512 || !_analysisBuffer.floatChannelData) return;
+        _analysisBuffer.frameLength < 1024 || !_analysisBuffer.floatChannelData) return;
 
     const float *samples = _analysisBuffer.floatChannelData[0];
     ULPMSH2FeatureFrame frame = {0};
@@ -328,7 +328,8 @@ typedef Boolean (*ULPSendCommand)(NSInteger, NSDictionary *);
         }
         float power = MAX(0, first * first + second * second - coefficient * first * second);
         frame.spectrum[band] = MIN(1, sqrtf(power) * 24 / sampleCount);
-        frame.waveform[band] = samples[band * (sampleCount - 1) / 63];
+        // Same 1024-frame window and stride as AudioSnapshotServer2.
+        frame.waveform[band] = samples[band * 1024 / 64];
     }
     ULPSignalProcess(&_signal, &frame);
     [_visualizer updateAudio:frame zoomLevel:_signal.zoomLevel];

@@ -122,6 +122,8 @@ ULPVisualConfig ULPLoadVisualPreferences(void) {
     BOOLEAN(peakCaps, "PeakCaps"); NUMBER(capThickness, "CapThickness");
     NUMBER(dotSize, "DotSize"); NUMBER(unlitOpacity, "UnlitOpacity"); NUMBER(thickness, "Thickness");
     BOOLEAN(fill, "SpectrumFill"); NUMBER(fillOpacity, "FillOpacity"); BOOLEAN(mirrorVertical, "MirrorVertical");
+    NUMBER(waveAmplitude, "WaveAmplitude"); NUMBER(waveSmoothing, "WaveSmoothing");
+    NUMBER(centreGap, "CentreGap"); BOOLEAN(smoothCurve, "SmoothCurve");
     config.growFrom = ULPByte(values, @"GrowFrom", config.growFrom, 255);
     config.rows = ULPByte(values, @"Rows", config.rows, 32);
 #undef NUMBER

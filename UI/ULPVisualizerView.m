@@ -1,4 +1,5 @@
 #import "ULPVisualizerView.h"
+#import "../Visualization/ULPWaveform.h"
 
 #import <QuartzCore/QuartzCore.h>
 #import <math.h>
@@ -14,6 +15,7 @@
     CGFloat _zoom;
     float _levels[128];
     float _peaks[128];
+    ULPWaveformState _wave;
     CFTimeInterval _lastFrameTime;
     UIColor *_manualColor;
     UIColor *_artworkColor;
@@ -31,16 +33,6 @@ static float ULPSampleSpectrum(ULPMSH2FeatureFrame frame, float position) {
     float fraction = position - lower;
     return ULPClampLevel(frame.spectrum[lower]) * (1 - fraction) +
            ULPClampLevel(frame.spectrum[upper]) * fraction;
-}
-
-static float ULPSampleWaveform(ULPMSH2FeatureFrame frame, float phase) {
-    float position = fminf(63, fmaxf(0, phase * 63));
-    unsigned lower = (unsigned)floorf(position);
-    unsigned upper = lower < 63 ? lower + 1 : lower;
-    float fraction = position - lower;
-    float a = isfinite(frame.waveform[lower]) ? frame.waveform[lower] : 0;
-    float b = isfinite(frame.waveform[upper]) ? frame.waveform[upper] : 0;
-    return fminf(1, fmaxf(-1, a * (1 - fraction) + b * fraction));
 }
 
 static float ULPSpectrumPhase(float phase, ULPSymmetry symmetry) {
@@ -68,6 +60,21 @@ static void ULPAppendSmoothLine(UIBezierPath *path, const CGPoint *points,
         [path addQuadCurveToPoint:midpoint controlPoint:points[i - 1]];
     }
     [path addQuadCurveToPoint:points[count - 1] controlPoint:points[count - 1]];
+}
+
+static void ULPAppendWaveLine(UIBezierPath *path, const CGPoint *points,
+                              NSUInteger count, BOOL smooth, BOOL connect) {
+    if (!count) return;
+    if (connect) [path addLineToPoint:points[0]];
+    else [path moveToPoint:points[0]];
+    for (NSUInteger i = 1; i < count; ++i) {
+        if (smooth) {
+            CGPoint middle = CGPointMake((points[i-1].x + points[i].x) / 2,
+                                         (points[i-1].y + points[i].y) / 2);
+            [path addQuadCurveToPoint:middle controlPoint:points[i-1]];
+        } else [path addLineToPoint:points[i]];
+    }
+    if (smooth) [path addQuadCurveToPoint:points[count-1] controlPoint:points[count-1]];
 }
 
 @implementation ULPVisualizerView
@@ -126,6 +133,7 @@ static void ULPAppendSmoothLine(UIBezierPath *path, const CGPoint *points,
     if (changedMode) {
         memset(_levels, 0, sizeof(_levels));
         memset(_peaks, 0, sizeof(_peaks));
+        memset(&_wave, 0, sizeof(_wave));
         _visualLayer.path = NULL; _capsLayer.path = NULL;
         _unlitLayer.path = NULL; _fillLayer.path = NULL;
     }
@@ -195,11 +203,13 @@ static void ULPAppendSmoothLine(UIBezierPath *path, const CGPoint *points,
     CGFloat width = CGRectGetWidth(self.bounds);
     CGFloat height = CGRectGetHeight(self.bounds);
     // Width determines the normal size; short preview cards limit it to fit.
-    CGFloat side = MIN(width * 0.44, height * 0.72);
+    BOOL waveform = _visualConfig.mode == ULPVisualModeWave || _visualConfig.mode == ULPVisualModeMirror;
+    CGFloat side = waveform ? width * .94 : MIN(width * 0.44, height * 0.72);
     _visualContainer.bounds = CGRectMake(0, 0, side, side);
     CGFloat verticalCenter = height < 240 ? 0.50 : 0.42;
-    _visualContainer.center = CGPointMake(width / 2 + _visualConfig.offsetX,
-                                           height * verticalCenter + _visualConfig.offsetY);
+    CGFloat coordinateScale = waveform ? width / 400.0 : 1;
+    _visualContainer.center = CGPointMake(width / 2 + _visualConfig.offsetX * coordinateScale,
+                                           height * verticalCenter + _visualConfig.offsetY * coordinateScale);
     _visualLayer.frame = _visualContainer.bounds;
     _capsLayer.frame = _visualContainer.bounds;
     _unlitLayer.frame = _visualContainer.bounds;
@@ -213,7 +223,8 @@ static void ULPAppendSmoothLine(UIBezierPath *path, const CGPoint *points,
 }
 
 - (void)updateAudio:(ULPMSH2FeatureFrame)frame zoomLevel:(float)zoomLevel {
-    if (!(frame.featureMask & ULP_MSH2_SPECTRUM)) return;
+    BOOL waveform = _visualConfig.mode == ULPVisualModeWave || _visualConfig.mode == ULPVisualModeMirror;
+    if (!waveform && !(frame.featureMask & ULP_MSH2_SPECTRUM)) return;
     CFTimeInterval now = CACurrentMediaTime();
     if (now - _lastFrameTime + 0.002 < 1.0 / _visualConfig.framesPerSecond) return;
     CGFloat dt = _lastFrameTime > 0 ? MIN(0.1, now - _lastFrameTime) : 1.0 / 60;
@@ -230,7 +241,7 @@ static void ULPAppendSmoothLine(UIBezierPath *path, const CGPoint *points,
     ULPVisualMode mode = _visualConfig.mode;
     BOOL radial = mode == ULPVisualModeCircle || mode == ULPVisualModeDot ||
                   mode == ULPVisualModeRadial;
-    for (NSUInteger i = 0; i < count; ++i) {
+    for (NSUInteger i = 0; !waveform && i < count; ++i) {
         float fraction = (float)i / (radial ? count : MAX(1, count - 1));
         float phase = ULPVisualIsSpectrum(mode) ?
                       ULPSpectrumFrequencyPhase(fraction, _visualConfig.mirror, _visualConfig.reverse) :
@@ -247,7 +258,34 @@ static void ULPAppendSmoothLine(UIBezierPath *path, const CGPoint *points,
         _levels[i] += (target - _levels[i]) * factor;
     }
 
-    if (radial) {
+    if (waveform) {
+        ULPWaveformUpdate(&_wave, &frame, _visualConfig.waveSmoothing, dt);
+        BOOL mirror = mode == ULPVisualModeMirror;
+        CGPoint upper[128], lower[128];
+        CGFloat usable = side * .9;
+        CGFloat coordinateScale = side / 376.0;
+        for (NSUInteger i = 0; i < count; ++i) {
+            float phase = (float)i / MAX(1, count - 1);
+            float sample = ULPWaveformSample(&_wave, phase);
+            CGFloat x = center - usable / 2 + phase * usable;
+            upper[i] = CGPointMake(x, center + ULPWaveformOffset(sample,
+                _visualConfig.waveAmplitude, 94, mirror, _visualConfig.centreGap, false) * coordinateScale);
+            lower[count-1-i] = CGPointMake(x, center + ULPWaveformOffset(sample,
+                _visualConfig.waveAmplitude, 94, true, _visualConfig.centreGap, true) * coordinateScale);
+        }
+        BOOL smooth = mirror || _visualConfig.smoothCurve;
+        ULPAppendWaveLine(path, upper, count, smooth, NO);
+        if (mirror) ULPAppendWaveLine(path, lower, count, smooth, NO);
+        if (_visualConfig.fill) {
+            ULPAppendWaveLine(fill, upper, count, smooth, NO);
+            if (mirror) ULPAppendWaveLine(fill, lower, count, smooth, YES);
+            else {
+                [fill addLineToPoint:CGPointMake(upper[count-1].x, center)];
+                [fill addLineToPoint:CGPointMake(upper[0].x, center)];
+            }
+            [fill closePath];
+        }
+    } else if (radial) {
         for (NSUInteger i = 0; i < count; ++i) {
             CGFloat angle = (CGFloat)i / count * (CGFloat)(M_PI * 2) - (CGFloat)M_PI_2;
             CGFloat radius = baseRadius + _levels[i] * side * _visualConfig.animationScale;
@@ -350,10 +388,7 @@ static void ULPAppendSmoothLine(UIBezierPath *path, const CGPoint *points,
                 float smooth = (_levels[i == 0 ? 0 : i - 1] +
                                 2 * _levels[i] +
                                 _levels[i + 1 < count ? i + 1 : i]) * 0.25f;
-                CGFloat sample = mode == ULPVisualModeWave &&
-                                  (frame.featureMask & ULP_MSH2_WAVEFORM) ?
-                                  ULPSampleWaveform(frame, phase) :
-                                  sin(phase * (M_PI * 4) + now * (3 + layer) + layer * 2) * smooth;
+                CGFloat sample = sin(phase * (M_PI * 4) + now * (3 + layer) + layer * 2) * smooth;
                 CGFloat y = center + sample * side * _visualConfig.animationScale *
                                      (mode == ULPVisualModeSiri ? (1.0 + layer * 0.3) : 1.7);
                 points[i] = CGPointMake(x, y);
@@ -372,8 +407,9 @@ static void ULPAppendSmoothLine(UIBezierPath *path, const CGPoint *points,
     _capsLayer.path = caps.CGPath;
     _unlitLayer.path = unlit.CGPath;
     _fillLayer.path = fill.CGPath;
-    _visualLayer.lineWidth = mode == ULPVisualModeLine ? _visualConfig.thickness :
+    _visualLayer.lineWidth = (waveform || mode == ULPVisualModeLine) ? _visualConfig.thickness :
         (mode == ULPVisualModeSiri ? 2.8 : 2.0);
+    if (waveform) _visualLayer.lineWidth *= side / 376.0;
     _visualLayer.shadowOpacity = _visualConfig.glow;
     CGFloat targetZoom = 1 + ULPClampLevel(zoomLevel) * _visualConfig.zoomStrength;
     CGFloat response = 1 - pow(1 - (targetZoom > _zoom ? 0.52 : 0.19), dt * 60);

@@ -10,7 +10,7 @@ ifeq ($(wildcard $(PREVIEW_AUDIO)),)
 $(error Thiếu $(PREVIEW_AUDIO): cần tệp nhạc mẫu để build Preview)
 endif
 
-ULPPreferences_FILES = ULPSettingsListController.m ULPRootListController.m ULPVisualizerListController.m ULPModePickerController.m ULPLabeledSliderCell.m ULPVisualizerPreviewController.m ../UI/ULPVisualizerView.m ../Visualization/ULPVisualConfig.c ../Visualization/ULPVisualPreferences.m ../Visualization/ULPSignal.c
+ULPPreferences_FILES = ULPSettingsListController.m ULPRootListController.m ULPVisualizerListController.m ULPModePickerController.m ULPLabeledSliderCell.m ULPVisualizerPreviewController.m ../UI/ULPVisualizerView.m ../Visualization/ULPVisualConfig.c ../Visualization/ULPWaveform.c ../Visualization/ULPVisualPreferences.m ../Visualization/ULPSignal.c
 ULPPreferences_RESOURCE_FILES = $(PREVIEW_AUDIO)
 ULPPreferences_FRAMEWORKS = UIKit AVFoundation
 ULPPreferences_PRIVATE_FRAMEWORKS = Preferences

@@ -45,10 +45,10 @@ int main(void) {
     assert(invalid.scale == 1.8f && invalid.zoomStrength == 0);
 
     // Distinct stable storage IDs must survive adding new modes.
-    for (int mode = 0; mode <= ULPVisualModeDotMatrix; ++mode) {
+    for (int mode = 0; mode <= ULPVisualModeMirror; ++mode) {
         ULPVisualConfig c = ULPVisualConfigDefaultForMode((ULPVisualMode)mode);
         assert(c.mode == (ULPVisualMode)mode);
-        for (int other = mode + 1; other <= ULPVisualModeDotMatrix; ++other)
+        for (int other = mode + 1; other <= ULPVisualModeMirror; ++other)
             assert(strcmp(ULPVisualModeID((ULPVisualMode)mode),
                           ULPVisualModeID((ULPVisualMode)other)) != 0);
     }
@@ -77,6 +77,12 @@ int main(void) {
     assert(bars.growFrom == 0 && bars.minimumHeight == 0);
     assert(bars.zoomFirstBand == 60 && bars.zoomLastBand == 60);
 
+    ULPVisualConfig wave = ULPVisualConfigDefaultForMode(ULPVisualModeMirror);
+    assert(wave.thickness == 3 && wave.waveAmplitude == 1 && wave.centreGap == 12);
+    assert(strcmp(ULPVisualModeID(wave.mode), "mirror") == 0);
+    wave.waveAmplitude = 99; wave.waveSmoothing = NAN; wave.centreGap = -3; wave.thickness = 15;
+    wave = ULPVisualConfigNormalize(wave);
+    assert(wave.waveAmplitude == 2 && wave.waveSmoothing == 0 && wave.centreGap == 0 && wave.thickness == 12);
     puts("VisualConfigTests OK");
     return 0;
 }

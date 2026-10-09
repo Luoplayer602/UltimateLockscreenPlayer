@@ -12,10 +12,11 @@ Tweak Theos cho màn hình khóa iOS 15 jailbreak **rootless**. Player preset 01
 - `Playback/ULPNowPlaying.h` và `.m`: adapter MediaRemote đọc metadata, trạng thái phát và gửi lệnh điều khiển Player.
 - `Visualization/`: đọc dải phổ tần, cấu hình có giới hạn và tải tùy chọn visualizer; dải visualizer và zoom độc lập.
 - `UI/ULPLockScreenView.m`: Player preset 01 trong vùng Player gốc để giữ thao tác cuộn và điều khiển.
-- `UI/ULPVisualizerView.m`: Spectrum Bar, Equalizer ô vuông, Line, Dot ma trận; cùng các mode Waveform, Siri, Circle classic, Spectro và Dotted orbit hiện có. Cùng renderer được dùng trong Preview và màn hình khóa.
+- `UI/ULPVisualizerView.m`: Spectrum Bar, Equalizer ô vuông, Line, Dot ma trận; cùng các mode Waveform, Mirror, Siri, Circle classic, Spectro và Dotted orbit hiện có. Cùng renderer được dùng trong Preview và màn hình khóa.
 - `Probe/`: công cụ chẩn đoán MSH2, gồm gói tạm `ServerProbe` cho `mediaserverd`.
 - `ThirdParty/AudioSnapshotServer2/`: bản vá nguồn capture mono Float32 cho iPhone 6s; xem `ULP_PATCH.md` trước khi đóng gói.
 - `Preferences/`: `Cài đặt → ULP → Visualizer`, picker Modes chia ba nhóm và chỉ hiện thông số của mode đang chọn. Mỗi mode lưu giá trị riêng. Preview nhỏ phát lặp `inst.wav`, cố định khi cuộn, ẩn Pause khi phát và hiện lại khi chạm. Nhấn Apply để Respring; Preview đọc cấu hình mỗi giây.
+- `Visualization/ULPWaveform.c`: waveform có dấu, nội suy/làm mượt và hình học Mirror dùng chung giữa preview với màn hình khóa; nguồn MSH2 hiện có 64 mẫu mỗi khung.
 - `Tests/`: kiểm tra parser, vòng đời phát nhạc, tín hiệu, giới hạn cấu hình, thứ tự tần số mirror/reverse và tính nhất quán của các điều khiển theo mode trên WSL.
 - `UltimateLockscreenPlayer.plist`: chỉ nạp tweak vào SpringBoard.
 - `control`: metadata cho gói Debian `iphoneos-arm64`.

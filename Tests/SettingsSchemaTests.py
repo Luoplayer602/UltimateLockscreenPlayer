@@ -20,7 +20,7 @@ for resource in ('Visualizer', 'Root'):
         if item['cell'] == 'PSButtonCell':
             assert item.get('buttonAction'), f'Missing PSButtonCell callback: {item}'
             assert 'action' not in item, f'Generic action does not dispatch button taps: {item}'
-for mode in range(9):
+for mode in range(10):
     visible = [item for item in items if 'ulpModes' not in item or mode in item['ulpModes']]
     keys = [item['key'] for item in visible if 'key' in item]
     assert len(keys) == len(set(keys)), f'Duplicate setting in mode {mode}'
@@ -44,4 +44,14 @@ assert bar_by_key['BarSpacing']['default'] == .25
 assert bar_by_key['BarHeight']['default'] == 1
 assert 'Rows' not in bar_by_key and 'DotSize' not in bar_by_key
 assert not any(item.get('label') == 'SHAPE' for item in bar)
-print('SettingsSchemaTests OK: 9 mode configurations')
+print('SettingsSchemaTests OK: 10 mode configurations')
+
+for mode in (5, 9):
+    visible = [item for item in items if 'ulpModes' not in item or mode in item['ulpModes']]
+    by_key = {item['key']:item for item in visible if 'key' in item}
+    assert all(key in by_key for key in ('Thickness','WaveAmplitude','VisualPoints','SpectrumFill','FillOpacity','WaveSmoothing'))
+    assert 'VisualSymmetry' not in by_key and 'VisualAnimationScale' not in by_key
+    assert 'VisualFirstBand' not in by_key and 'VisualLastBand' not in by_key
+    assert ('CentreGap' in by_key) == (mode == 9)
+    assert ('SmoothCurve' in by_key) == (mode == 5)
+    assert by_key['WaveSmoothing']['default'] == 0

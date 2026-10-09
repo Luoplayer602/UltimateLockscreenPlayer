@@ -5,6 +5,7 @@ Tests/LifecycleTests
 Tests/SignalTests
 Tests/ProgressClockTests
 Tests/VisualConfigTests
+Tests/WaveformTests
 *.deb
 *.dylib
 *.o

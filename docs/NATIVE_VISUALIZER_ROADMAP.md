@@ -28,3 +28,11 @@ Tạo bảng ánh xạ từ các trường demo sang cấu hình native và ch�
 ## Tiến độ — 0.1.0-54
 
 Đã kiểm tra iPhone đang ở 0.1.0-51. Đợt đầu giữ schema 1 và renderer Bar hiện có, chuẩn hóa liên kết hàng Settings bằng ID, mở Modes trực tiếp, thay bố cục slider và refresh preview khi chỉnh. Đã build gói arm64/rootless và chạy bộ Tests thành công; kết quả runtime trên iPhone còn chờ xác nhận. Xem `NATIVE_BAR_SETTINGS_CONTRACT.md` để biết ánh xạ và các bước thử.
+
+## Tiến độ — 0.1.0-55
+
+Người dùng đã nghiệm thu 0.1.0-54. Bước tiếp theo bổ sung Waveform có dấu và Mirror từ cùng dữ liệu, bộ xử lý chung và các điều khiển tương ứng; xem `NATIVE_WAVEFORM_CONTRACT.md`. Đã hoàn thành mã và test cục bộ, đang chuẩn bị thử native trên iPhone.
+
+## Tiến độ — 0.1.0-56
+
+0.1.0-55 đã cài trên iPhone. Trang Mirror và Fill hoạt động sau khi đóng và mở lại Settings, nhưng người dùng báo Waveform phẳng và rung khác trước. Sửa mặc định Waveform smoothing về 0 và giảm thời gian làm mượt khi chủ động tăng slider; cần nghiệm thu lại Preview và màn hình khóa trên iPhone.

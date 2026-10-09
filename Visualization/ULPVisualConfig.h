@@ -25,6 +25,7 @@ typedef enum {
     ULPVisualModeRadial = 6,
     ULPVisualModeEqualizer = 7,
     ULPVisualModeDotMatrix = 8,
+    ULPVisualModeMirror = 9,
 } ULPVisualMode;
 
 typedef enum {
@@ -82,6 +83,10 @@ typedef struct {
     float fillOpacity;
     bool mirrorVertical;
     bool automaticColor;
+    float waveAmplitude;
+    float waveSmoothing;
+    float centreGap;
+    bool smoothCurve;
 } ULPVisualConfig;
 
 ULPVisualConfig ULPVisualConfigDefault(void);

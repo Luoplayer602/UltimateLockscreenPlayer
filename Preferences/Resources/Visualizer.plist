@@ -781,13 +781,231 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>label</key>
+			<string>WAVEFORM</string>
+			<key>ulpModes</key>
+			<array>
+				<integer>5</integer>
+				<integer>9</integer>
+			</array>
+			<key>id</key>
+			<string>wave.group</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>label</key>
+			<string>Thickness</string>
+			<key>key</key>
+			<string>Thickness</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<integer>3</integer>
+			<key>ulpModes</key>
+			<array>
+				<integer>5</integer>
+				<integer>9</integer>
+			</array>
+			<key>id</key>
+			<string>wave.Thickness</string>
+			<key>cellClass</key>
+			<string>ULPLabeledSliderCell</string>
+			<key>height</key>
+			<integer>68</integer>
+			<key>showValue</key>
+			<true/>
+			<key>min</key>
+			<real>0.5</real>
+			<key>max</key>
+			<integer>12</integer>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>label</key>
+			<string>Amplitude</string>
+			<key>key</key>
+			<string>WaveAmplitude</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<integer>1</integer>
+			<key>ulpModes</key>
+			<array>
+				<integer>5</integer>
+				<integer>9</integer>
+			</array>
+			<key>id</key>
+			<string>wave.WaveAmplitude</string>
+			<key>cellClass</key>
+			<string>ULPLabeledSliderCell</string>
+			<key>height</key>
+			<integer>96</integer>
+			<key>showValue</key>
+			<true/>
+			<key>min</key>
+			<integer>0</integer>
+			<key>max</key>
+			<integer>2</integer>
+			<key>ulpHelp</key>
+			<string>Độ xa của sóng so với đường giữa.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>label</key>
+			<string>Detail</string>
+			<key>key</key>
+			<string>VisualPoints</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<integer>64</integer>
+			<key>ulpModes</key>
+			<array>
+				<integer>5</integer>
+				<integer>9</integer>
+			</array>
+			<key>id</key>
+			<string>wave.VisualPoints</string>
+			<key>cellClass</key>
+			<string>ULPLabeledSliderCell</string>
+			<key>height</key>
+			<integer>96</integer>
+			<key>showValue</key>
+			<true/>
+			<key>min</key>
+			<integer>12</integer>
+			<key>max</key>
+			<integer>128</integer>
+			<key>ulpInteger</key>
+			<true/>
+			<key>ulpHelp</key>
+			<string>Số điểm nội suy để vẽ đường sóng; không tăng chi tiết của nguồn âm.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>label</key>
+			<string>Smooth curve</string>
+			<key>key</key>
+			<string>SmoothCurve</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<true/>
+			<key>ulpModes</key>
+			<array>
+				<integer>5</integer>
+			</array>
+			<key>id</key>
+			<string>wave.SmoothCurve.5</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>label</key>
+			<string>Centre gap</string>
+			<key>key</key>
+			<string>CentreGap</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<integer>12</integer>
+			<key>ulpModes</key>
+			<array>
+				<integer>9</integer>
+			</array>
+			<key>id</key>
+			<string>wave.CentreGap.9</string>
+			<key>cellClass</key>
+			<string>ULPLabeledSliderCell</string>
+			<key>height</key>
+			<integer>68</integer>
+			<key>showValue</key>
+			<true/>
+			<key>min</key>
+			<integer>0</integer>
+			<key>max</key>
+			<integer>80</integer>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>label</key>
+			<string>Fill under wave</string>
+			<key>key</key>
+			<string>SpectrumFill</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<false/>
+			<key>ulpModes</key>
+			<array>
+				<integer>5</integer>
+			</array>
+			<key>id</key>
+			<string>wave.SpectrumFill.5</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>label</key>
+			<string>Fill</string>
+			<key>key</key>
+			<string>SpectrumFill</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<false/>
+			<key>ulpModes</key>
+			<array>
+				<integer>9</integer>
+			</array>
+			<key>id</key>
+			<string>wave.SpectrumFill.9</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>label</key>
+			<string>Fill opacity</string>
+			<key>key</key>
+			<string>FillOpacity</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<real>0.2</real>
+			<key>ulpModes</key>
+			<array>
+				<integer>5</integer>
+				<integer>9</integer>
+			</array>
+			<key>id</key>
+			<string>wave.FillOpacity</string>
+			<key>cellClass</key>
+			<string>ULPLabeledSliderCell</string>
+			<key>height</key>
+			<integer>68</integer>
+			<key>showValue</key>
+			<true/>
+			<key>min</key>
+			<integer>0</integer>
+			<key>max</key>
+			<integer>1</integer>
+			<key>ulpDependsOn</key>
+			<string>SpectrumFill</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
 			<string>SHAPE</string>
 			<key>ulpModes</key>
 			<array>
 				<integer>0</integer>
 				<integer>3</integer>
 				<integer>4</integer>
-				<integer>5</integer>
 				<integer>6</integer>
 			</array>
 			<key>id</key>
@@ -819,7 +1037,6 @@
 				<integer>0</integer>
 				<integer>3</integer>
 				<integer>4</integer>
-				<integer>5</integer>
 				<integer>6</integer>
 			</array>
 			<key>ulpInteger</key>
@@ -853,7 +1070,6 @@
 				<integer>0</integer>
 				<integer>3</integer>
 				<integer>4</integer>
-				<integer>5</integer>
 				<integer>6</integer>
 			</array>
 			<key>id</key>
@@ -891,7 +1107,6 @@
 				<integer>0</integer>
 				<integer>3</integer>
 				<integer>4</integer>
-				<integer>5</integer>
 				<integer>6</integer>
 			</array>
 			<key>id</key>
@@ -1267,9 +1482,40 @@
 			<key>label</key>
 			<string>AUDIO &amp; PERFORMANCE</string>
 			<key>footerText</key>
-			<string>Dải 0–63 của bộ lấy mẫu. Preview cập nhật sau khoảng 1 giây; Apply áp dụng trên màn hình khóa.</string>
+			<string>Preview cập nhật khi chỉnh; Apply áp dụng trên màn hình khóa.</string>
 			<key>id</key>
 			<string>ulp.AUDIO &amp; PERFORMANCE</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>label</key>
+			<string>Waveform smoothing</string>
+			<key>key</key>
+			<string>WaveSmoothing</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<real>0</real>
+			<key>ulpModes</key>
+			<array>
+				<integer>5</integer>
+				<integer>9</integer>
+			</array>
+			<key>id</key>
+			<string>wave.WaveSmoothing</string>
+			<key>cellClass</key>
+			<string>ULPLabeledSliderCell</string>
+			<key>height</key>
+			<integer>96</integer>
+			<key>showValue</key>
+			<true/>
+			<key>min</key>
+			<integer>0</integer>
+			<key>max</key>
+			<integer>1</integer>
+			<key>ulpHelp</key>
+			<string>0 giữ chuyển động gốc của PCM; tăng nhẹ để giảm rung mà vẫn giữ biên độ.</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -1296,6 +1542,17 @@
 			<true/>
 			<key>id</key>
 			<string>ulp.VisualFirstBand</string>
+			<key>ulpModes</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+				<integer>2</integer>
+				<integer>3</integer>
+				<integer>4</integer>
+				<integer>6</integer>
+				<integer>7</integer>
+				<integer>8</integer>
+			</array>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -1322,6 +1579,17 @@
 			<true/>
 			<key>id</key>
 			<string>ulp.VisualLastBand</string>
+			<key>ulpModes</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+				<integer>2</integer>
+				<integer>3</integer>
+				<integer>4</integer>
+				<integer>6</integer>
+				<integer>7</integer>
+				<integer>8</integer>
+			</array>
 		</dict>
 		<dict>
 			<key>cell</key>

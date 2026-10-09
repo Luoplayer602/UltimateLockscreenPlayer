@@ -29,11 +29,12 @@ ULPVisualConfig ULPVisualConfigDefault(void) {
         .capThickness = 1, .rows = 16, .dotSize = 4,
         .unlitOpacity = 0.08f, .thickness = 2, .fillOpacity = 0.2f,
         .automaticColor = true,
+        .waveAmplitude = 1, .waveSmoothing = 0, .centreGap = 12, .smoothCurve = true,
     };
 }
 
 ULPVisualConfig ULPVisualConfigNormalize(ULPVisualConfig config) {
-    if (config.mode < ULPVisualModeCircle || config.mode > ULPVisualModeDotMatrix)
+    if (config.mode < ULPVisualModeCircle || config.mode > ULPVisualModeMirror)
         config.mode = ULPVisualModeCircle;
     if (config.preset < ULPVisualPresetCustom || config.preset > ULPVisualPresetWaveform)
         config.preset = ULPVisualPresetCustom;
@@ -75,7 +76,11 @@ ULPVisualConfig ULPVisualConfigNormalize(ULPVisualConfig config) {
     if (config.rows > 32) config.rows = 32;
     config.dotSize = ULPBound(config.dotSize, 1, 16);
     config.unlitOpacity = ULPBound(config.unlitOpacity, 0, 1);
-    config.thickness = ULPBound(config.thickness, 0.5f, 8);
+    config.thickness = ULPBound(config.thickness, 0.5f,
+        config.mode == ULPVisualModeWave || config.mode == ULPVisualModeMirror ? 12 : 8);
+    config.waveAmplitude = ULPBound(config.waveAmplitude, 0, 2);
+    config.waveSmoothing = ULPBound(config.waveSmoothing, 0, 1);
+    config.centreGap = ULPBound(config.centreGap, 0, 80);
     config.fillOpacity = ULPBound(config.fillOpacity, 0, 1);
     return config;
 }
@@ -85,6 +90,10 @@ ULPVisualConfig ULPVisualConfigDefaultForMode(ULPVisualMode mode) {
     config.mode = mode;
     if (mode == ULPVisualModeBar || mode == ULPVisualModeEqualizer) config.points = 32;
     if (mode == ULPVisualModeDotMatrix) { config.points = 24; config.rows = 12; }
+    if (mode == ULPVisualModeWave || mode == ULPVisualModeMirror) {
+        config.thickness = 3;
+        config.symmetry = ULPSymmetryNone;
+    }
     return ULPVisualConfigNormalize(config);
 }
 
@@ -96,6 +105,7 @@ const char *ULPVisualModeID(ULPVisualMode mode) {
         case ULPVisualModeDotMatrix: return "dot-matrix";
         case ULPVisualModeSiri: return "siri";
         case ULPVisualModeWave: return "waveform";
+        case ULPVisualModeMirror: return "mirror";
         case ULPVisualModeRadial: return "spectro";
         case ULPVisualModeDot: return "dotted-orbit";
         default: return "classic-circle";
