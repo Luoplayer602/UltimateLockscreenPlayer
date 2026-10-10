@@ -24,6 +24,7 @@ ULPVisualConfig ULPVisualConfigDefault(void) {
         .zoomStrength = 0.18f,
         .zoomFirstBand = 0, .zoomLastBand = 16,
         .width = 1, .height = 1, .opacity = 1, .glow = 0.35f,
+        .trailDuration = .8f, .trailOpacity = .45f,
         .spacing = 0.25f, .barHeight = 1, .frequencyRange = 1,
         .mirror = true, .minimumHeight = 2, .dynamics = 1,
         .capThickness = 1, .rows = 16, .dotSize = 4,
@@ -37,6 +38,9 @@ ULPVisualConfig ULPVisualConfigDefault(void) {
         .colorMode = 2, .color1 = 0xFFFFFF, .color2 = 0xFF80B5, .gradientAngle = 45,
         .backgroundColor1 = 0x19191F, .backgroundColor2 = 0x293247,
         .artworkBackground = true, .artworkBackgroundType = 2,
+        .coverMode = ULPCoverModeLogo, .coverSize = .44f, .coverOpacity = 1,
+        .coverOutlineThickness = 3, .coverOutlineOpacity = .4f,
+        .coverOutlineColor = 0xFFFFFF, .coverGlow = .2f,
     };
 }
 
@@ -69,6 +73,8 @@ ULPVisualConfig ULPVisualConfigNormalize(ULPVisualConfig config) {
     config.rotation = ULPBound(config.rotation, -180, 180);
     config.opacity = ULPBound(config.opacity, 0, 1);
     config.glow = ULPBound(config.glow, 0, 1);
+    config.trailDuration = ULPBound(config.trailDuration, .1f, 2);
+    config.trailOpacity = ULPBound(config.trailOpacity, 0, 1);
     config.barWidth = ULPBound(config.barWidth, 0, 24);
     config.spacing = ULPBound(config.spacing, 0, 0.9f);
     config.barHeight = ULPBound(config.barHeight, 0.05f, 1);
@@ -108,12 +114,27 @@ ULPVisualConfig ULPVisualConfigNormalize(ULPVisualConfig config) {
     if (config.backgroundMode > 1) config.backgroundMode = 0;
     config.backgroundColor1 &= 0xFFFFFF; config.backgroundColor2 &= 0xFFFFFF;
     if (config.artworkBackgroundType > 2) config.artworkBackgroundType = 2;
+    if (config.coverMode < ULPCoverModeLogo || config.coverMode > ULPCoverModeOff)
+        config.coverMode = ULPCoverModeOff;
+    config.coverSize = ULPBound(config.coverSize, .1f, 1);
+    config.coverX = ULPBound(config.coverX, -80, 80);
+    config.coverY = ULPBound(config.coverY, -80, 80);
+    config.coverOpacity = ULPBound(config.coverOpacity, 0, 1);
+    config.coverOutlineThickness = ULPBound(config.coverOutlineThickness, 0, 10);
+    config.coverOutlineOpacity = ULPBound(config.coverOutlineOpacity, 0, 1);
+    config.coverOutlineColor &= 0xFFFFFF;
+    config.coverGlow = ULPBound(config.coverGlow, 0, 1);
+    config.coverSpin = ULPBound(config.coverSpin, -90, 90);
     return config;
 }
 
 ULPVisualConfig ULPVisualConfigDefaultForMode(ULPVisualMode mode) {
     ULPVisualConfig config = ULPVisualConfigDefault();
     config.mode = mode;
+    if (mode != ULPVisualModeCircle && mode != ULPVisualModeDot &&
+        mode != ULPVisualModeRadial && mode != ULPVisualModeCircularWave &&
+        mode != ULPVisualModeSmoothSpectro)
+        config.coverMode = ULPCoverModeOff;
     if (mode == ULPVisualModeBar || mode == ULPVisualModeEqualizer) config.points = 32;
     if (mode == ULPVisualModeDotMatrix) { config.points = 24; config.rows = 12; }
     if (mode == ULPVisualModeRadial) config.points = 64;

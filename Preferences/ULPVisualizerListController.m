@@ -148,6 +148,8 @@
                 if ([property hasPrefix:@"ulp"])
                     [specifier setProperty:item[property] forKey:property];
             }
+            id modeDefault = item[@"ulpDefaultByMode"][[NSString stringWithFormat:@"%d", _loadedMode]];
+            if (modeDefault) [specifier setProperty:modeDefault forKey:@"default"];
             if (item[@"ulpColorPicker"] || item[@"ulpChoiceValues"])
                 specifier.detailControllerClass = ULPStylePickerController.class;
             NSString *key = item[@"key"];
@@ -267,6 +269,21 @@
     [[self settingsTable] layoutIfNeeded];
     [[self settingsTable] setContentOffset:offset animated:NO];
     [_stickyPreview refreshVisualPreferences];
+}
+
+- (void)resetCover {
+    for (NSString *key in @[@"CoverMode", @"CoverSize", @"CoverX", @"CoverY", @"CoverOpacity",
+        @"CoverOutlineThickness", @"CoverOutlineColor", @"CoverOutlineOpacity", @"CoverGlow", @"CoverSpin"])
+        CFPreferencesSetAppValue((__bridge CFStringRef)ULPVisualPreferenceKey(key, _loadedMode),
+            NULL, CFSTR("com.luoplayer.ultimatelockscreenplayer"));
+    CFPreferencesAppSynchronize(CFSTR("com.luoplayer.ultimatelockscreenplayer"));
+    CGPoint offset = [self settingsTable].contentOffset;
+    _specifiers = nil;
+    [self reloadSpecifiers];
+    [[self settingsTable] layoutIfNeeded];
+    [[self settingsTable] setContentOffset:offset animated:NO];
+    [_stickyPreview refreshVisualPreferences];
+    [_stickyPreview resetCoverMotion];
 }
 
 @end

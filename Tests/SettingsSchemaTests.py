@@ -45,6 +45,28 @@ for mode in range(12):
             assert item.get('detail') == 'ULPStylePickerController', 'Colour page needs an explicit controller'
             assert item['cellClass'] == 'ULPColorCell' and item['cell'] == 'PSLinkCell'
     assert 'VisualPreset' not in keys, 'Legacy presets must not override the chosen mode'
+    trail = {item['key']: item for item in visible if item.get('key', '').startswith('Trail')}
+    assert set(trail) == {'TrailEnabled', 'TrailDuration', 'TrailOpacity'}
+    assert trail['TrailEnabled']['default'] is False
+    assert trail['TrailDuration']['default'] == .8 and trail['TrailOpacity']['default'] == .45
+    assert trail['TrailDuration']['ulpDependsOn'] == 'TrailEnabled'
+    assert trail['TrailOpacity']['ulpDependsOn'] == 'TrailEnabled'
+    cover = {item['key']: item for item in visible if item.get('key', '').startswith('Cover')}
+    assert set(cover) == {'CoverMode', 'CoverSize', 'CoverX', 'CoverY', 'CoverOpacity',
+                        'CoverOutlineThickness', 'CoverOutlineColor', 'CoverOutlineOpacity',
+                        'CoverGlow', 'CoverSpin'}
+    assert cover['CoverMode']['ulpDefaultByMode'][str(mode)] == (0 if mode in (0,3,6,10,11) else 2)
+    for key, item in cover.items():
+        if key != 'CoverMode':
+            assert item['ulpDependsOn'] == 'CoverMode' and item['ulpEnabledValues'] == [0,1]
+    assert cover['CoverSize']['default'] == .44
+    assert cover['CoverSpin']['default'] == 0
+    assert cover['CoverMode']['validValues'] == [0,1,2]
+    assert cover['CoverMode']['validTitles'] == ['Logo','Artwork','Off']
+    for item in visible:
+        if 'ulpDefaultByMode' in item:
+            assert set(item['ulpDefaultByMode']) == {str(i) for i in range(12)}
+            assert set(item['ulpDefaultByMode'].values()) <= set(item['validValues'])
 bar = [item for item in items if 'ulpModes' not in item or 1 in item['ulpModes']]
 bar_by_key = {item['key']: item for item in bar if 'key' in item}
 assert bar_by_key['VisualPoints']['default'] == 32

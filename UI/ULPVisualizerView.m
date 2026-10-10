@@ -1,14 +1,15 @@
 #import "ULPVisualizerView.h"
 #import "../Visualization/ULPWaveform.h"
+#import "../Visualization/ULPTrail.h"
 #import "ULPStyleColors.h"
+#import "ULPCoverView.h"
 
 #import <QuartzCore/QuartzCore.h>
 #import <math.h>
 
 @interface ULPVisualizerView () {
     UIView *_visualContainer;
-    UIView *_halo;
-    UILabel *_centerLabel;
+    ULPCoverView *_cover;
     CAShapeLayer *_visualLayer;
     CAShapeLayer *_capsLayer;
     CAShapeLayer *_ringLayer;
@@ -28,11 +29,45 @@
     UIColor *_artworkColor;
     CAGradientLayer *_shapePaint;
     CALayer *_shapeMask;
+    CALayer *_trailLayer;
+    ULPTrailBuffer _trail;
+    CGContextRef _trailContext;
+    NSTimer *_trailTimer;
+    CFTimeInterval _lastTrailTime;
+    CGRect _trailViewport;
+    BOOL _trailUnavailable;
+    __weak UIImage *_trailArtwork;
 }
 @end
 
 static float ULPClampLevel(float value) {
     return isfinite(value) ? fminf(1, fmaxf(0, value)) : 0;
+}
+
+// Capture geometry only: the halo, label, background and current Glow never
+// enter the history. The live CAShapeLayers remain the foreground renderer.
+static void ULPTrailDrawShape(CGContextRef context, CAShapeLayer *layer, BOOL mask) {
+    if (!layer.path || layer.hidden || layer.opacity <= 0) return;
+    if (layer.fillColor && CGColorGetAlpha(layer.fillColor) > 0) {
+        CGContextSetAlpha(context, layer.opacity);
+        if (mask) CGContextSetRGBFillColor(context, 1, 1, 1, CGColorGetAlpha(layer.fillColor));
+        else CGContextSetFillColorWithColor(context, layer.fillColor);
+        CGContextAddPath(context, layer.path);
+        if ([layer.fillRule isEqualToString:kCAFillRuleEvenOdd]) CGContextEOFillPath(context);
+        else CGContextFillPath(context);
+    }
+    if (layer.strokeColor && CGColorGetAlpha(layer.strokeColor) > 0 && layer.lineWidth > 0) {
+        CGContextSetAlpha(context, layer.opacity);
+        if (mask) CGContextSetRGBStrokeColor(context, 1, 1, 1, CGColorGetAlpha(layer.strokeColor));
+        else CGContextSetStrokeColorWithColor(context, layer.strokeColor);
+        CGContextSetLineWidth(context, layer.lineWidth);
+        CGContextSetLineCap(context, [layer.lineCap isEqualToString:kCALineCapRound] ? kCGLineCapRound :
+            [layer.lineCap isEqualToString:kCALineCapSquare] ? kCGLineCapSquare : kCGLineCapButt);
+        CGContextSetLineJoin(context, [layer.lineJoin isEqualToString:kCALineJoinRound] ? kCGLineJoinRound :
+            [layer.lineJoin isEqualToString:kCALineJoinBevel] ? kCGLineJoinBevel : kCGLineJoinMiter);
+        CGContextAddPath(context, layer.path);
+        CGContextStrokePath(context);
+    }
 }
 
 static float ULPSampleSpectrum(ULPMSH2FeatureFrame frame, float position) {
@@ -115,6 +150,11 @@ static void ULPAppendClosedWave(UIBezierPath *path, const CGPoint *points,
     _zoom = 1;
     _manualColor = UIColor.whiteColor;
 
+    _trailLayer = [CALayer layer];
+    _trailLayer.actions = @{@"contents":NSNull.null, @"bounds":NSNull.null,
+                            @"position":NSNull.null};
+    [self.layer addSublayer:_trailLayer];
+
     _visualContainer = [UIView new];
     _visualContainer.userInteractionEnabled = NO;
     [self addSubview:_visualContainer];
@@ -159,27 +199,28 @@ static void ULPAppendClosedWave(UIBezierPath *path, const CGPoint *points,
     _shapePaint.mask = _shapeMask;
     [_visualContainer.layer addSublayer:_shapePaint];
 
-    _halo = [UIView new];
-    _halo.backgroundColor = [[UIColor whiteColor] colorWithAlphaComponent:0.09];
-    _halo.layer.borderColor = [[UIColor whiteColor] colorWithAlphaComponent:0.28].CGColor;
-    _halo.layer.borderWidth = 1;
-    _halo.layer.shadowColor = UIColor.whiteColor.CGColor;
-    _halo.layer.shadowOpacity = 0.12;
-    _halo.layer.shadowRadius = 24;
-    [_visualContainer addSubview:_halo];
-
-    _centerLabel = [UILabel new];
-    _centerLabel.text = @"ULP";
-    _centerLabel.textAlignment = NSTextAlignmentCenter;
-    _centerLabel.textColor = UIColor.whiteColor;
-    _centerLabel.font = [UIFont boldSystemFontOfSize:19];
-    [_visualContainer addSubview:_centerLabel];
+    _cover = [[ULPCoverView alloc] initWithFrame:CGRectZero];
+    _cover.visualConfig = _visualConfig;
+    [self addSubview:_cover];
     return self;
 }
 
 - (void)setVisualConfig:(ULPVisualConfig)visualConfig {
+    visualConfig = ULPVisualConfigNormalize(visualConfig);
+    BOOL changedCover = visualConfig.mode != _visualConfig.mode ||
+                        visualConfig.coverMode != _visualConfig.coverMode;
     BOOL changedMode = visualConfig.mode != _visualConfig.mode || visualConfig.points != _visualConfig.points;
-    _visualConfig = ULPVisualConfigNormalize(visualConfig);
+    if (changedMode || visualConfig.trailEnabled != _visualConfig.trailEnabled ||
+        visualConfig.enabled != _visualConfig.enabled ||
+        visualConfig.colorMode != _visualConfig.colorMode ||
+        visualConfig.color1 != _visualConfig.color1 || visualConfig.color2 != _visualConfig.color2 ||
+        visualConfig.gradientAngle != _visualConfig.gradientAngle ||
+        visualConfig.fill != _visualConfig.fill || visualConfig.fillOpacity != _visualConfig.fillOpacity ||
+        visualConfig.opacity != _visualConfig.opacity || visualConfig.trailOpacity != _visualConfig.trailOpacity)
+        [self resetTrail];
+    _visualConfig = visualConfig;
+    _cover.visualConfig = visualConfig;
+    if (changedCover) [_cover resetMotion];
     if (changedMode) {
         memset(_levels, 0, sizeof(_levels));
         memset(_peaks, 0, sizeof(_peaks));
@@ -191,13 +232,6 @@ static void ULPAppendClosedWave(UIBezierPath *path, const CGPoint *points,
         _siriBackFill.path = NULL; _siriMiddleFill.path = NULL;
     }
     [self updateVisualTransform];
-    BOOL radial = _visualConfig.mode == ULPVisualModeCircle ||
-                  _visualConfig.mode == ULPVisualModeDot ||
-                  _visualConfig.mode == ULPVisualModeRadial ||
-                  _visualConfig.mode == ULPVisualModeCircularWave ||
-                  _visualConfig.mode == ULPVisualModeSmoothSpectro;
-    _halo.hidden = !radial;
-    _centerLabel.hidden = !radial;
     [self setNeedsLayout];
     [self updateStrokeColor];
 }
@@ -251,13 +285,14 @@ static void ULPAppendClosedWave(UIBezierPath *path, const CGPoint *points,
         layer.shadowColor = color.CGColor;
         layer.shadowOpacity = _visualConfig.glow * .7;
     }
-    _halo.layer.borderColor = [color colorWithAlphaComponent:0.28].CGColor;
-    _halo.layer.shadowColor = color.CGColor;
-    _halo.layer.shadowOpacity = _visualConfig.glow * 0.35;
     [CATransaction commit];
 }
 
 - (void)setArtwork:(UIImage *)artwork manualColor:(UIColor *)manualColor {
+    if (artwork != _trailArtwork || ![_manualColor isEqual:manualColor ?: UIColor.whiteColor])
+        [self resetTrail];
+    _trailArtwork = artwork;
+    _cover.artwork = artwork;
     _manualColor = manualColor ?: UIColor.whiteColor;
     _artworkColor = nil;
     if (artwork.CGImage) {
@@ -283,6 +318,11 @@ static void ULPAppendClosedWave(UIBezierPath *path, const CGPoint *points,
 
 - (void)layoutSubviews {
     [super layoutSubviews];
+    if (!CGRectEqualToRect(_trailViewport, self.bounds)) {
+        [self resetTrail];
+        _trailViewport = self.bounds;
+    }
+    _trailLayer.frame = self.bounds;
     CGFloat width = CGRectGetWidth(self.bounds);
     CGFloat height = CGRectGetHeight(self.bounds);
     // Width determines the normal size; short preview cards limit it to fit.
@@ -307,16 +347,7 @@ static void ULPAppendClosedWave(UIBezierPath *path, const CGPoint *points,
     for (CAShapeLayer *layer in @[_visualLayer, _capsLayer, _ringLayer, _unlitLayer,
          _fillLayer, _siriBackStroke, _siriMiddleStroke, _siriBackFill, _siriMiddleFill])
         layer.frame = CGRectMake(padding, padding, side, side);
-    CGFloat haloSide = side * (_visualConfig.mode == ULPVisualModeSmoothSpectro ?
-                               _visualConfig.smoothSpectroSize * .82 :
-                              (_visualConfig.mode == ULPVisualModeRadial ||
-                               _visualConfig.mode == ULPVisualModeCircularWave) ?
-                               _visualConfig.innerRadius * .82 : .44);
-    _halo.frame = CGRectMake((side - haloSide) / 2, (side - haloSide) / 2,
-                             haloSide, haloSide);
-    _halo.layer.cornerRadius = haloSide / 2;
-    _centerLabel.frame = _halo.frame;
-    _centerLabel.font = [UIFont boldSystemFontOfSize:MIN(19, haloSide * 0.25)];
+    [_cover layoutInViewport:self.bounds];
 }
 
 - (void)updateAudio:(ULPMSH2FeatureFrame)frame zoomLevel:(float)zoomLevel {
@@ -636,6 +667,139 @@ static void ULPAppendClosedWave(UIBezierPath *path, const CGPoint *points,
     _zoom += (targetZoom - _zoom) * response;
     [self updateVisualTransform];
     [CATransaction commit];
+    if (_playbackActive) [_cover advanceSpinBy:dt];
+    [self updateTrailAtTime:now capture:YES];
+}
+
+- (void)resetCoverMotion {
+    [_cover resetMotion];
+}
+
+- (void)resetTrail {
+    [_trailTimer invalidate];
+    _trailTimer = nil;
+    _trailLayer.contents = nil;
+    if (_trailContext) CGContextRelease(_trailContext);
+    _trailContext = NULL;
+    ULPTrailFree(&_trail);
+    _lastTrailTime = 0;
+    _trailUnavailable = NO;
+}
+
+- (void)setHidden:(BOOL)hidden {
+    [super setHidden:hidden];
+    if (hidden) [self resetTrail];
+}
+
+- (void)didMoveToWindow {
+    [super didMoveToWindow];
+    if (!self.window) [self resetTrail];
+}
+
+- (BOOL)prepareTrailBitmap {
+    if (_trailContext) return YES;
+    CGFloat width = CGRectGetWidth(self.bounds), height = CGRectGetHeight(self.bounds);
+    if (width < 1 || height < 1 || !isfinite(width * height)) return NO;
+    CGFloat scale = MIN(UIScreen.mainScreen.scale,
+                        sqrt((double)ULP_TRAIL_MAX_PIXELS / (width * height)));
+    size_t pixelsWide = MAX(1, (size_t)floor(width * scale));
+    size_t pixelsHigh = MAX(1, (size_t)floor(height * scale));
+    if (!ULPTrailResize(&_trail, pixelsWide, pixelsHigh)) return NO;
+    CGColorSpaceRef space = CGColorSpaceCreateDeviceRGB();
+    _trailContext = CGBitmapContextCreate(_trail.current, pixelsWide, pixelsHigh, 8,
+        pixelsWide * 4, space, kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big);
+    CGColorSpaceRelease(space);
+    return _trailContext != NULL;
+}
+
+- (void)captureTrailGeometry {
+    CGContextRef context = _trailContext;
+    memset(_trail.current, 0, _trail.width * _trail.height * 4);
+    CGContextSaveGState(context);
+    // Store old geometry in view coordinates, before any later zoom/rotation.
+    CGContextTranslateCTM(context, 0, _trail.height);
+    CGContextScaleCTM(context, _trail.width / CGRectGetWidth(self.bounds),
+                              -(CGFloat)_trail.height / CGRectGetHeight(self.bounds));
+    CGContextTranslateCTM(context, _visualContainer.center.x, _visualContainer.center.y);
+    CGContextConcatCTM(context, _visualContainer.transform);
+    CGContextTranslateCTM(context, -CGRectGetMidX(_visualContainer.bounds),
+                                  -CGRectGetMidY(_visualContainer.bounds));
+    BOOL gradient = _visualConfig.colorMode == 1;
+    for (CAShapeLayer *shape in @[_unlitLayer, _siriBackFill, _siriMiddleFill,
+         _fillLayer, _siriBackStroke, _siriMiddleStroke, _visualLayer, _ringLayer, _capsLayer])
+        ULPTrailDrawShape(context, shape, gradient);
+    if (gradient) {
+        // The same combined alpha mask and local gradient as the live layers.
+        CGContextSetAlpha(context, 1);
+        CGContextSetBlendMode(context, kCGBlendModeSourceIn);
+        CGGradientRef paint = CGGradientCreateWithColors(CGBitmapContextGetColorSpace(context),
+            (__bridge CFArrayRef)_shapePaint.colors, NULL);
+        ULPGradientPoints points = ULPGradientEndpoints(_visualConfig.gradientAngle,
+            CGRectGetWidth(_visualContainer.bounds), CGRectGetHeight(_visualContainer.bounds));
+        CGFloat side = CGRectGetWidth(_visualContainer.bounds);
+        if (paint) {
+            CGContextDrawLinearGradient(context, paint,
+                CGPointMake(points.x1 * side, points.y1 * side),
+                CGPointMake(points.x2 * side, points.y2 * side),
+                kCGGradientDrawsBeforeStartLocation | kCGGradientDrawsAfterEndLocation);
+            CGGradientRelease(paint);
+        }
+    }
+    CGContextRestoreGState(context);
+}
+
+- (void)updateTrailAtTime:(CFTimeInterval)now capture:(BOOL)capture {
+    if (!_visualConfig.trailEnabled || !_visualConfig.enabled ||
+        _visualConfig.trailOpacity <= 0 || _visualConfig.opacity <= 0 || self.hidden || !self.window) {
+        if (_trail.history) [self resetTrail];
+        return;
+    }
+    if (_trailUnavailable) return;
+    if (![self prepareTrailBitmap]) {
+        [self resetTrail];
+        _trailUnavailable = YES;
+        NSLog(@"[ULP] Trail bitmap unavailable; live renderer continues");
+        return;
+    }
+    if (capture) [self captureTrailGeometry];
+    double elapsed = _lastTrailTime ? MAX(0, now - _lastTrailTime) : 0;
+    _lastTrailTime = now;
+    if (!ULPTrailComposite(&_trail, elapsed, _visualConfig.trailDuration,
+                           _visualConfig.trailOpacity, _visualConfig.opacity, capture)) {
+        [self resetTrail];
+        return;
+    }
+    // Copy the bytes: CA can keep an image after the next audio frame mutates
+    // output. Never hand it a provider pointing at the reusable scratch buffer.
+    CFDataRef pixels = _trail.hasOutput ?
+        CFDataCreate(kCFAllocatorDefault, _trail.output, _trail.width * _trail.height * 4) : NULL;
+    CGDataProviderRef provider = pixels ? CGDataProviderCreateWithCFData(pixels) : NULL;
+    CGImageRef image = provider ? CGImageCreate(_trail.width, _trail.height, 8, 32, _trail.width * 4,
+        CGBitmapContextGetColorSpace(_trailContext), kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big,
+        provider, NULL, YES, kCGRenderingIntentDefault) : NULL;
+    _trailLayer.contents = (__bridge id)image;
+    if (image) CGImageRelease(image);
+    if (provider) CGDataProviderRelease(provider);
+    if (pixels) CFRelease(pixels);
+    if (!_trailTimer) {
+        __weak typeof(self) weakSelf = self;
+        _trailTimer = [NSTimer timerWithTimeInterval:1.0 / 30 repeats:YES block:^(NSTimer *timer) {
+            __strong typeof(weakSelf) self = weakSelf;
+            if (!self) { [timer invalidate]; return; }
+            CFTimeInterval clock = CACurrentMediaTime();
+            // Accepted audio frames already update the footprint. Only fade
+            // independently after audio/preview updates stop (pause or stall).
+            if (clock - self->_lastFrameTime > MAX(.08, 2.0 / self->_visualConfig.framesPerSecond))
+                [self updateTrailAtTime:clock capture:NO];
+        }];
+        [NSRunLoop.mainRunLoop addTimer:_trailTimer forMode:NSRunLoopCommonModes];
+    }
+}
+
+- (void)dealloc {
+    [_trailTimer invalidate];
+    if (_trailContext) CGContextRelease(_trailContext);
+    ULPTrailFree(&_trail);
 }
 
 - (BOOL)hasUnsettledPeakCaps {

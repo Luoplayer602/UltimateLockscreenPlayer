@@ -14,6 +14,10 @@ int main(void) {
     assert(defaults.scale == 1.0f && defaults.zoomStrength == 0.18f);
     assert(defaults.colorMode == 2 && defaults.automaticColor);
     assert(defaults.artworkBackground && defaults.artworkBackgroundType == 2);
+    assert(!defaults.trailEnabled && defaults.trailDuration == .8f && defaults.trailOpacity == .45f);
+    assert(defaults.coverMode == ULPCoverModeLogo && defaults.coverSize == .44f);
+    assert(defaults.coverOpacity == 1 && defaults.coverOutlineThickness == 3);
+    assert(defaults.coverOutlineColor == 0xFFFFFF && defaults.coverSpin == 0);
     assert(ULPVisualModeForPreset(ULPVisualPresetSpectrumBars) == ULPVisualModeBar);
     assert(ULPVisualModeForPreset(ULPVisualPresetSiriFlow) == ULPVisualModeSiri);
 
@@ -36,6 +40,12 @@ int main(void) {
     invalid.animationScale = NAN;
     invalid.scale = 9;
     invalid.zoomStrength = -1;
+    invalid.trailDuration = INFINITY; invalid.trailOpacity = 3;
+    invalid.coverMode = (ULPCoverMode)255; invalid.coverSize = 9;
+    invalid.coverX = NAN; invalid.coverY = -100; invalid.coverOpacity = 3;
+    invalid.coverOutlineThickness = -1; invalid.coverOutlineOpacity = 3;
+    invalid.coverGlow = INFINITY; invalid.coverSpin = -200;
+    invalid.coverOutlineColor = 0xFF112233;
     invalid = ULPVisualConfigNormalize(invalid);
     assert(invalid.points == 12 && invalid.framesPerSecond == 15);
     assert(invalid.firstBand == 50 && invalid.lastBand == 50);
@@ -45,11 +55,19 @@ int main(void) {
     assert(invalid.offsetX == -80 && invalid.offsetY == -80);
     assert(invalid.animationScale == 0);
     assert(invalid.scale == 1.8f && invalid.zoomStrength == 0);
+    assert(invalid.trailDuration == .1f && invalid.trailOpacity == 1);
+    assert(invalid.coverMode == ULPCoverModeOff && invalid.coverSize == 1);
+    assert(invalid.coverX == -80 && invalid.coverY == -80 && invalid.coverOpacity == 1);
+    assert(invalid.coverOutlineThickness == 0 && invalid.coverOutlineOpacity == 1);
+    assert(invalid.coverGlow == 0 && invalid.coverSpin == -90);
+    assert(invalid.coverOutlineColor == 0x112233);
 
     // Distinct stable storage IDs must survive adding new modes.
     for (int mode = 0; mode <= ULPVisualModeSmoothSpectro; ++mode) {
         ULPVisualConfig c = ULPVisualConfigDefaultForMode((ULPVisualMode)mode);
         assert(c.mode == (ULPVisualMode)mode);
+        bool radialCover = mode == 0 || mode == 3 || mode == 6 || mode == 10 || mode == 11;
+        assert(c.coverMode == (radialCover ? ULPCoverModeLogo : ULPCoverModeOff));
         for (int other = mode + 1; other <= ULPVisualModeSmoothSpectro; ++other)
             assert(strcmp(ULPVisualModeID((ULPVisualMode)mode),
                           ULPVisualModeID((ULPVisualMode)other)) != 0);

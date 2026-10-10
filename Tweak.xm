@@ -542,6 +542,7 @@ static void ULPCheckPlayer(BOOL force) {
     gBackground = background;
     ULPVisualizerView *visualizer = [[ULPVisualizerView alloc] initWithFrame:self.view.bounds];
     visualizer.visualConfig = gVisualConfig;
+    visualizer.playbackActive = gLastSnapshot.playing;
     [visualizer setArtwork:nil manualColor:gVisualManualColor];
     visualizer.hidden = YES;
     [self.view insertSubview:visualizer aboveSubview:background];
@@ -841,6 +842,7 @@ static void ULPDiagnosticLog(NSString *message) {
             static BOOL lastArtwork;
             int oldPID = gLastSnapshot.processID;
             gLastSnapshot = snapshot;
+            gVisualizer.playbackActive = snapshot.playing;
             ULPPlaybackPresentation previous = gLifecycle.presentation;
             uint64_t now = ULPNowMs();
             BOOL sessionPresent = snapshot.sessionPresent;
@@ -862,8 +864,14 @@ static void ULPDiagnosticLog(NSString *message) {
             }
             lastArtwork = hasArtwork;
             if (![gArtworkTrack isEqualToString:snapshot.trackIdentifier ?: @""]) {
+                [gVisualizer resetTrail];
+                [gVisualizer resetCoverMotion];
                 gArtworkTrack = snapshot.trackIdentifier ?: @"";
                 ULPReceiveArtwork(nil);
+            }
+            if (oldPID != snapshot.processID) {
+                [gVisualizer resetTrail];
+                [gVisualizer resetCoverMotion];
             }
             UIImage *artwork = snapshot.artworkImage;
             if (!artwork && snapshot.artworkData.length)

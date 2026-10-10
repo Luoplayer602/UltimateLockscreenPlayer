@@ -41,6 +41,12 @@ typedef enum {
     ULPVisualPresetWaveform = 7,
 } ULPVisualPreset;
 
+typedef enum {
+    ULPCoverModeLogo = 0,
+    ULPCoverModeArtwork = 1,
+    ULPCoverModeOff = 2,
+} ULPCoverMode;
+
 typedef struct {
     bool enabled;
     ULPVisualMode mode;
@@ -64,6 +70,9 @@ typedef struct {
     bool flipY;
     float opacity;
     float glow;
+    bool trailEnabled;
+    float trailDuration; // Seconds for an old footprint to fade to 1%.
+    float trailOpacity;
     float barWidth;
     float spacing;
     float barHeight;
@@ -109,6 +118,11 @@ typedef struct {
     uint32_t backgroundColor1, backgroundColor2;
     bool artworkBackground;
     uint8_t artworkBackgroundType; // 0 scaled, 1 centred + blur, 2 blur.
+    ULPCoverMode coverMode;
+    float coverSize, coverX, coverY, coverOpacity;
+    float coverOutlineThickness, coverOutlineOpacity, coverGlow;
+    uint32_t coverOutlineColor;
+    float coverSpin; // Degrees per second; image/logo only, while playing.
 } ULPVisualConfig;
 
 ULPVisualConfig ULPVisualConfigDefault(void);

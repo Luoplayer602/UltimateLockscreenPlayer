@@ -10,6 +10,8 @@ Tests/WaveformTests
 Tests/PreviewSpectrumTests
 Tests/StyleTests
 Tests/ArtworkRequestTests
+Tests/TrailTests
+Tests/CoverTests
 *.deb
 *.dylib
 *.o

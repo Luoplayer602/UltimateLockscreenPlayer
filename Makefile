@@ -9,6 +9,8 @@ UltimateLockscreenPlayer_FILES = Tweak.xm Audio/MSH2Protocol.c Audio/MSH2Client.
 UltimateLockscreenPlayer_CFLAGS = -fobjc-arc -fmodules-cache-path=$(THEOS_PROJECT_DIR)/.theos/module-cache
 UltimateLockscreenPlayer_FRAMEWORKS = UIKit CoreImage AVFoundation
 UltimateLockscreenPlayer_FILES += Visualization/ULPStyle.c
+UltimateLockscreenPlayer_FILES += Visualization/ULPTrail.c
+UltimateLockscreenPlayer_FILES += Visualization/ULPCover.c UI/ULPCoverView.m
 UltimateLockscreenPlayer_FILES += Playback/ULPArtworkProvider.m Playback/ULPArtworkRequest.c
 
 include $(THEOS_MAKE_PATH)/tweak.mk

@@ -126,6 +126,8 @@ ULPVisualConfig ULPLoadVisualPreferences(void) {
     NUMBER(width, "VisualWidth"); NUMBER(height, "VisualHeight"); NUMBER(rotation, "VisualRotation");
     BOOLEAN(flipX, "VisualFlipX"); BOOLEAN(flipY, "VisualFlipY");
     NUMBER(opacity, "VisualOpacity"); NUMBER(glow, "VisualGlow");
+    BOOLEAN(trailEnabled, "TrailEnabled"); NUMBER(trailDuration, "TrailDuration");
+    NUMBER(trailOpacity, "TrailOpacity");
     NUMBER(barWidth, "BarWidth"); NUMBER(spacing, "BarSpacing"); NUMBER(barHeight, "BarHeight");
     NUMBER(cornerRadius, "BarCornerRadius"); NUMBER(frequencyRange, "FrequencyRange");
     BOOLEAN(mirror, "SpectrumMirror"); BOOLEAN(reverse, "SpectrumReverse");
@@ -155,6 +157,12 @@ ULPVisualConfig ULPLoadVisualPreferences(void) {
     config.backgroundColor2 = ULPColor(values, @"BackgroundColor2", config.backgroundColor2);
     BOOLEAN(artworkBackground, "ArtworkBackground");
     config.artworkBackgroundType = ULPByte(values, @"ArtworkBackgroundType", 2, 255);
+    config.coverMode = (ULPCoverMode)ULPByte(values, @"CoverMode", config.coverMode, 255);
+    NUMBER(coverSize, "CoverSize"); NUMBER(coverX, "CoverX"); NUMBER(coverY, "CoverY");
+    NUMBER(coverOpacity, "CoverOpacity"); NUMBER(coverOutlineThickness, "CoverOutlineThickness");
+    NUMBER(coverOutlineOpacity, "CoverOutlineOpacity"); NUMBER(coverGlow, "CoverGlow");
+    NUMBER(coverSpin, "CoverSpin");
+    config.coverOutlineColor = ULPColor(values, @"CoverOutlineColor", config.coverOutlineColor);
 #undef NUMBER
 #undef BOOLEAN
     return ULPVisualConfigNormalize(config);

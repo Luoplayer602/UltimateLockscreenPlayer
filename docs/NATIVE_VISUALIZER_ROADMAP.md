@@ -92,3 +92,17 @@ Người dùng xác nhận ảnh mới của 66 đã đạt. Center dim image + 
 ## Hoàn thiện giao diện và chuẩn bị pre-release — 0.1.0-68
 
 Người dùng đã nghiệm thu 67. Bo góc liên tục ảnh giữa Center dim image + blur, bán kính khoảng 20 pt trên màn 375 pt, giữ kích thước/zoom/nguồn ảnh đã đạt. Viết lại README gồm giới thiệu, cấu trúc, cài DEB/build cả server mod, demo-ui và credits. Release notes `PRE_RELEASE_NOTES.md` là đề xuất `0.2.0-beta.1`, chưa đổi phiên bản/phát hành/tag. README và release notes không đề cập Lyrics theo yêu cầu người dùng. Sau khi bo góc được nghiệm thu có thể chốt gói pre-release, tiếp tục theo dõi độ ổn định lâu dài.
+
+## Trail — 0.1.0-69
+
+Người dùng đồng ý bắt đầu nhóm kế tiếp theo thứ tự Trail → Cover → Beat detector và Beat motion → ổn định. Gói 69 thêm Trail On/Off, Length và Opacity riêng cho từng mode, dùng chung renderer ở Preview/màn hình khóa. Footprint giữ tọa độ cũ, decay theo thời gian thực và dùng coverage lớn nhất để tránh cộng sáng. Giới hạn một bitmap history, giải phóng khi ẩn/đổi bài; decay tiếp khi ngừng cập nhật audio. Bộ Tests và build đạt; còn cần nghiệm thu hình ảnh, FPS và pin trên iPhone. Xem `NATIVE_TRAIL_CONTRACT.md`.
+
+Sau khi Trail đạt, triển khai Cover trước, rồi Beat detector và đủ sáu Beat motion: Swell, Flash, Shake, Spin, Bounce, Wobble. Mỗi nhóm có bản nghiệm thu riêng để xác định hồi quy. Giữ DSP đã đạt và tiếp tục theo dõi player/artwork, vị trí, tiến trình, đồng hồ.
+
+### Xác nhận hiển thị Trail — 2026-10-10
+
+Sau khi đóng Settings giữ bundle cũ, mở lại, chọn Waveform và bật Trail (Length 1.5 s / Opacity 0.8), người dùng xác nhận vệt lưu đã hiện ở cả Preview và màn hình khóa sau Apply. Giữ renderer và DEB 69. Các bước kiểm tra khác cùng hiệu năng/độ ổn định lâu dài vẫn trong danh sách theo dõi. Nhóm chức năng kế tiếp là Cover, trước Beat detector và sáu Beat motion đã chốt.
+
+## Cover — 0.1.0-70
+
+Người dùng đồng ý tiếp tục. Thêm Logo/Artwork/Off, Size, vị trí, Opacity, viền/màu/độ mờ, Glow, Spin liên tục khi phát và Reset riêng của mode. Cover nằm riêng ngoài transform/history của nét visualizer, artwork crop tròn full bleed và fallback Logo. Tests/schema/build đạt; probe UIKit trên iPhone đạt viewport Preview và màn hình khóa, còn chờ nghiệm thu Settings/Apply và phản hồi dùng thực tế. Xem `NATIVE_COVER_CONTRACT.md`. Sau khi nhóm này đạt, triển khai Beat detector với đủ sáu Beat motion đã chốt; Spin liên tục của 70 là điều khiển khác với Beat motion Spin.

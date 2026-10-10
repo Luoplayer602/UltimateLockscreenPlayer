@@ -64,7 +64,7 @@ sudo killall mediaserverd && \
 sudo killall SpringBoard
 ```
 
-Đóng hẳn Settings và dừng nhạc/Preview trước khi cập nhật. Nếu server mod đã đúng phiên bản, chỉ cập nhật DEB ULP rồi respring. Nếu dùng SSH key, thêm `-i ~/.ssh/ulp_iphone` vào `scp`/`ssh`. Với phiên bản khác, thay đúng tên DEB của bản đó.
+Đóng hẳn Settings và dừng nhạc/Preview trước khi cập nhật. Respring không bảo đảm Settings đang mở sẽ tải lại PreferenceBundle: trang có thể hiện điều khiển mới từ plist nhưng Preview vẫn chạy renderer của bản trước. Nếu đã cập nhật khi Settings còn mở, đóng Settings từ app switcher hoặc chạy `killall Preferences` trong shell iPhone rồi mở lại. Nếu server mod đã đúng phiên bản, chỉ cập nhật DEB ULP rồi respring. Nếu dùng SSH key, thêm `-i ~/.ssh/ulp_iphone` vào `scp`/`ssh`. Với phiên bản khác, thay đúng tên DEB của bản đó.
 
 Sau khi cài, mở **Cài đặt → ULP**, bật tweak/visualizer, chọn mode và Apply. Phát nhạc rồi mở màn hình khóa để kiểm tra. Đọc log trên iPhone:
 

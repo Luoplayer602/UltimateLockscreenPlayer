@@ -3,7 +3,7 @@ CFLAGS ?= -O2 -Wall -Wextra -Werror -std=c11
 
 .PHONY: test clean
 
-test: MSH2ProtocolTests LifecycleTests SignalTests VisualConfigTests WaveformTests ProgressClockTests ListPlacementTests PreviewSpectrumTests StyleTests ArtworkRequestTests
+test: MSH2ProtocolTests LifecycleTests SignalTests VisualConfigTests WaveformTests ProgressClockTests ListPlacementTests PreviewSpectrumTests StyleTests ArtworkRequestTests TrailTests CoverTests
 	./MSH2ProtocolTests
 	./LifecycleTests
 	./SignalTests
@@ -14,6 +14,8 @@ test: MSH2ProtocolTests LifecycleTests SignalTests VisualConfigTests WaveformTes
 	./PreviewSpectrumTests
 	./StyleTests
 	./ArtworkRequestTests
+	./TrailTests
+	./CoverTests
 	python3 SettingsSchemaTests.py
 
 MSH2ProtocolTests: MSH2ProtocolTests.c ../Audio/MSH2Protocol.c ../Audio/MSH2Protocol.h
@@ -38,7 +40,10 @@ ListPlacementTests: ListPlacementTests.c ../Playback/ULPListPlacement.c ../Playb
 	$(CC) $(CFLAGS) ListPlacementTests.c ../Playback/ULPListPlacement.c -lm -o $@
 
 clean:
-	rm -f MSH2ProtocolTests LifecycleTests SignalTests VisualConfigTests WaveformTests ProgressClockTests ListPlacementTests PreviewSpectrumTests StyleTests ArtworkRequestTests
+	rm -f MSH2ProtocolTests LifecycleTests SignalTests VisualConfigTests WaveformTests ProgressClockTests ListPlacementTests PreviewSpectrumTests StyleTests ArtworkRequestTests TrailTests CoverTests
+
+CoverTests: CoverTests.c ../Visualization/ULPCover.c ../Visualization/ULPCover.h ../Visualization/ULPVisualConfig.c ../Visualization/ULPVisualConfig.h
+	$(CC) $(CFLAGS) CoverTests.c ../Visualization/ULPCover.c ../Visualization/ULPVisualConfig.c -lm -o $@
 
 PreviewSpectrumTests: PreviewSpectrumTests.c ../Audio/ULPPreviewSpectrum.c ../Audio/ULPPreviewSpectrum.h
 	$(CC) $(CFLAGS) PreviewSpectrumTests.c ../Audio/ULPPreviewSpectrum.c -lm -o $@
@@ -48,3 +53,6 @@ StyleTests: StyleTests.c ../Visualization/ULPStyle.c ../Visualization/ULPStyle.h
 
 ArtworkRequestTests: ArtworkRequestTests.c ../Playback/ULPArtworkRequest.c ../Playback/ULPArtworkRequest.h
 	$(CC) $(CFLAGS) ArtworkRequestTests.c ../Playback/ULPArtworkRequest.c -lm -o $@
+
+TrailTests: TrailTests.c ../Visualization/ULPTrail.c ../Visualization/ULPTrail.h
+	$(CC) $(CFLAGS) TrailTests.c ../Visualization/ULPTrail.c -lm -o $@

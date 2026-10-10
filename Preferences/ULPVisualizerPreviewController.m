@@ -41,6 +41,7 @@ typedef Boolean (*ULPSendCommand)(NSInteger, NSDictionary *);
     BOOL _starting;
     NSString *_externalTitle;
     NSUInteger _requestGeneration;
+    NSTimeInterval _lastAudioPosition;
 }
 @end
 
@@ -48,6 +49,8 @@ typedef Boolean (*ULPSendCommand)(NSInteger, NSDictionary *);
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(clearPreviewTrail:)
+        name:UIApplicationDidEnterBackgroundNotification object:nil];
     self.title = @"Preview";
     self.view.backgroundColor = self.compact ? UIColor.clearColor :
         [UIColor colorWithRed:0.06 green:0.07 blue:0.10 alpha:1];
@@ -169,14 +172,24 @@ typedef Boolean (*ULPSendCommand)(NSInteger, NSDictionary *);
 
 - (void)stopPreviewRendering {
     [self stopPreview];
+    [_visualizer resetTrail];
     [_displayLink invalidate];
     _displayLink = nil;
 }
 
 - (void)dealloc {
+    [NSNotificationCenter.defaultCenter removeObserver:self];
     [_displayLink invalidate];
     [_player stop];
     if (_mediaRemote) dlclose(_mediaRemote);
+}
+
+- (void)clearPreviewTrail:(NSNotification *)notification {
+    [_visualizer resetTrail];
+}
+
+- (void)resetCoverMotion {
+    [_visualizer resetCoverMotion];
 }
 
 - (void)refreshVisualPreferences {
@@ -253,7 +266,11 @@ typedef Boolean (*ULPSendCommand)(NSInteger, NSDictionary *);
         AVAudioSession *session = AVAudioSession.sharedInstance;
         [session setCategory:AVAudioSessionCategoryPlayback error:nil];
         [session setActive:YES error:nil];
+        [self->_visualizer resetTrail];
+        [self->_visualizer resetCoverMotion];
+        self->_lastAudioPosition = 0;
         [self->_player play];
+        self->_visualizer.playbackActive = self->_player.isPlaying;
         self->_starting = NO;
         self->_playButton.enabled = YES;
         [self->_playButton setTitle:@"Ⅱ" forState:UIControlStateNormal];
@@ -292,6 +309,7 @@ typedef Boolean (*ULPSendCommand)(NSInteger, NSDictionary *);
     _starting = NO;
     _playButton.enabled = YES;
     [_player stop];
+    _visualizer.playbackActive = NO;
     _player.currentTime = 0;
     [_playButton setTitle:@"▶" forState:UIControlStateNormal];
     _playButton.hidden = NO;
@@ -324,7 +342,13 @@ typedef Boolean (*ULPSendCommand)(NSInteger, NSDictionary *);
     CFTimeInterval now = CACurrentMediaTime();
     if (now - _lastPreferenceRead >= 1) [self refreshVisualPreferences];
     if (!_player.isPlaying || !_analysisFile || !_analysisBuffer) return;
-    AVAudioFramePosition position = (AVAudioFramePosition)(_player.currentTime *
+    NSTimeInterval audioPosition = _player.currentTime;
+    if (audioPosition < _lastAudioPosition) {
+        [_visualizer resetTrail];
+        [_visualizer resetCoverMotion];
+    }
+    _lastAudioPosition = audioPosition;
+    AVAudioFramePosition position = (AVAudioFramePosition)(audioPosition *
                                                             _analysisFile.processingFormat.sampleRate);
     _analysisFile.framePosition = MAX(0, position - 1024);
     NSError *error = nil;
