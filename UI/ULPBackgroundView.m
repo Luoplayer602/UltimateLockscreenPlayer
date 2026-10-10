@@ -2,9 +2,14 @@
 
 #import <CoreImage/CoreImage.h>
 #import <math.h>
+#import "ULPStyleColors.h"
+#import "ULPArtworkImage.h"
 
 @interface ULPBackgroundView () <UIGestureRecognizerDelegate> {
     UIImageView *_imageView;
+    UIImageView *_foreground;
+    CAGradientLayer *_fallbackGradient;
+    UIImage *_blurredArtwork;
     UIView *_dimView;
     UIImage *_sourceArtwork;
     CIContext *_imageContext;
@@ -88,51 +93,133 @@
     self.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     self.backgroundColor = [UIColor colorWithRed:0.10 green:0.10 blue:0.12 alpha:1];
     self.clipsToBounds = YES;
+    _visualConfig = ULPVisualConfigDefault();
+    _fallbackGradient = [CAGradientLayer layer];
+    [self.layer addSublayer:_fallbackGradient];
     _imageView = [[UIImageView alloc] initWithFrame:self.bounds];
     _imageView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     _imageView.contentMode = UIViewContentModeScaleAspectFill;
     [self addSubview:_imageView];
+    _foreground = [UIImageView new];
+    _foreground.clipsToBounds = YES;
+    _foreground.layer.cornerCurve = kCACornerCurveContinuous;
+    [self addSubview:_foreground];
     _dimView = [[UIView alloc] initWithFrame:self.bounds];
     _dimView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     _dimView.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.36];
     [self addSubview:_dimView];
+    [self updateAppearance];
     return self;
 }
 
-- (void)setArtwork:(UIImage *)artwork {
-    if (artwork == _sourceArtwork) return;
-    _sourceArtwork = artwork;
-    if (!artwork) { _imageView.image = nil; return; }
-    UIGraphicsBeginImageContextWithOptions(artwork.size, YES, artwork.scale);
+- (UIImage *)blurArtwork:(UIImage *)artwork {
+    if (!artwork || artwork.size.width <= 0 || artwork.size.height <= 0) return nil;
+    CGFloat ratio = MIN(1, 512 / MAX(artwork.size.width, artwork.size.height));
+    CGSize size = CGSizeMake(artwork.size.width * ratio, artwork.size.height * ratio);
+    UIGraphicsBeginImageContextWithOptions(size, YES, 1);
     [UIColor.blackColor setFill];
-    UIRectFill(CGRectMake(0, 0, artwork.size.width, artwork.size.height));
-    [artwork drawInRect:CGRectMake(0, 0, artwork.size.width, artwork.size.height)];
+    UIRectFill(CGRectMake(0, 0, size.width, size.height));
+    [artwork drawInRect:CGRectMake(0, 0, size.width, size.height)];
     UIImage *opaque = UIGraphicsGetImageFromCurrentImageContext();
     UIGraphicsEndImageContext();
     CIImage *input = [[CIImage alloc] initWithImage:opaque];
     CIFilter *blur = [CIFilter filterWithName:@"CIGaussianBlur"];
-    [blur setValue:input forKey:kCIInputImageKey];
+    [blur setValue:[input imageByClampingToExtent] forKey:kCIInputImageKey];
     [blur setValue:@24 forKey:kCIInputRadiusKey];
     CIImage *output = [blur.outputImage imageByCroppingToRect:input.extent];
     if (!_imageContext) _imageContext = [CIContext contextWithOptions:@{kCIContextUseSoftwareRenderer: @NO}];
     CGImageRef image = output ? [_imageContext createCGImage:output fromRect:input.extent] : NULL;
-    _imageView.image = image ? [UIImage imageWithCGImage:image] : opaque;
+    UIImage *result = image ? [UIImage imageWithCGImage:image] : opaque;
     if (image) CGImageRelease(image);
+    return result;
+}
+
+- (void)setVisualConfig:(ULPVisualConfig)config {
+    _visualConfig = ULPVisualConfigNormalize(config);
+    [self updateAppearance];
+}
+
+- (void)setContentViewport:(CGRect)rect {
+    _contentViewport = rect;
+    [self setNeedsLayout];
+}
+
+- (void)setArtwork:(UIImage *)artwork {
+    [self setArtwork:artwork renderedArtwork:nil];
+}
+
+- (void)setArtwork:(UIImage *)artwork renderedArtwork:(UIImage *)blur {
+    if (artwork != _sourceArtwork) {
+        _sourceArtwork = artwork;
+        _blurredArtwork = blur;
+    } else if (blur) _blurredArtwork = blur;
+    [self updateAppearance];
+}
+
+- (void)updateAppearance {
+    BOOL art = _sourceArtwork && _visualConfig.artworkBackground;
+    if (art && _visualConfig.artworkBackgroundType != 0 && !_blurredArtwork)
+        _blurredArtwork = [self blurArtwork:_sourceArtwork];
+    _imageView.hidden = !art || _visualConfig.artworkBackgroundType == 0;
+    _imageView.image = _blurredArtwork;
+    _foreground.hidden = !art || _visualConfig.artworkBackgroundType == 2;
+    _foreground.image = _sourceArtwork;
+    _foreground.contentMode = UIViewContentModeScaleAspectFit;
+    _dimView.hidden = !art;
+    _fallbackGradient.hidden = art;
+    UIColor *one = ULPStyleColor(_visualConfig.backgroundColor1);
+    UIColor *two = _visualConfig.backgroundMode == 1 ? ULPStyleColor(_visualConfig.backgroundColor2) : one;
+    [CATransaction begin];
+    [CATransaction setDisableActions:YES];
+    _fallbackGradient.colors = @[(id)one.CGColor, (id)two.CGColor];
+    _fallbackGradient.startPoint = CGPointMake(0, 0);
+    _fallbackGradient.endPoint = CGPointMake(1, 1);
+    [CATransaction commit];
+    [self setNeedsLayout];
+}
+
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    [CATransaction begin];
+    [CATransaction setDisableActions:YES];
+    _fallbackGradient.frame = self.bounds;
+    [CATransaction commit];
+    CGRect viewport = CGRectIsEmpty(_contentViewport) ? self.bounds : _contentViewport;
+    CGSize pixels = ULPArtworkPixelSize(_sourceArtwork);
+    CGFloat scale = self.window.screen.scale ?: UIScreen.mainScreen.scale;
+    ULPArtworkExtent extent = ULPArtworkForegroundExtent(pixels.width, pixels.height, scale,
+        CGRectGetWidth(viewport), CGRectGetHeight(viewport), _visualConfig.artworkBackgroundType == 0);
+    _foreground.bounds = CGRectMake(0, 0, extent.width, extent.height);
+    _foreground.center = CGPointMake(CGRectGetMidX(viewport), CGRectGetMidY(viewport));
+    [CATransaction begin];
+    [CATransaction setDisableActions:YES];
+    _foreground.layer.cornerRadius = _visualConfig.artworkBackgroundType == 1 ?
+        MIN(24, MIN(extent.width, extent.height) * .065) : 0;
+    [CATransaction commit];
+    [self applyArtworkZoom];
 }
 
 - (UIImage *)renderedArtwork {
-    return _imageView.image;
+    return _blurredArtwork;
 }
 
 - (void)setRenderedArtwork:(UIImage *)artwork {
-    _imageView.image = artwork;
+    _blurredArtwork = artwork;
+    [self updateAppearance];
 }
 
 - (void)setZoomLevel:(float)level {
     if (!isfinite(level)) return;
     float target = 1 + fminf(1, fmaxf(0, level)) * 0.08f;
     _zoom = _zoom > 0 ? _zoom + (target - _zoom) * 0.35f : target;
-    _imageView.transform = CGAffineTransformMakeScale(_zoom, _zoom);
+    [self applyArtworkZoom];
+}
+
+- (void)applyArtworkZoom {
+    float zoom = _zoom > 0 ? _zoom : 1;
+    _imageView.transform = CGAffineTransformMakeScale(zoom, zoom);
+    // Both foreground styles retain the original smoothed 8% audio motion.
+    _foreground.transform = CGAffineTransformMakeScale(zoom, zoom);
 }
 
 @end

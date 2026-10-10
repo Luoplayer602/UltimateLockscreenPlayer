@@ -1,5 +1,6 @@
 #import "ULPVisualizerView.h"
 #import "../Visualization/ULPWaveform.h"
+#import "ULPStyleColors.h"
 
 #import <QuartzCore/QuartzCore.h>
 #import <math.h>
@@ -25,6 +26,8 @@
     CGFloat _radialRotation;
     UIColor *_manualColor;
     UIColor *_artworkColor;
+    CAGradientLayer *_shapePaint;
+    CALayer *_shapeMask;
 }
 @end
 
@@ -83,6 +86,23 @@ static void ULPAppendWaveLine(UIBezierPath *path, const CGPoint *points,
     if (smooth) [path addQuadCurveToPoint:points[count-1] controlPoint:points[count-1]];
 }
 
+static void ULPAppendClosedWave(UIBezierPath *path, const CGPoint *points,
+                                NSUInteger count) {
+    if (count < 3) return;
+    // Periodic quadratic segments share their boundary tangent, including the
+    // seam. Midpoints also avoid spline overshoot on strong signed PCM peaks.
+    CGPoint first = CGPointMake((points[count-1].x + points[0].x) * .5,
+                                (points[count-1].y + points[0].y) * .5);
+    [path moveToPoint:first];
+    for (NSUInteger i = 0; i < count; ++i) {
+        CGPoint next = points[(i + 1) % count];
+        CGPoint middle = CGPointMake((points[i].x + next.x) * .5,
+                                     (points[i].y + next.y) * .5);
+        [path addQuadCurveToPoint:middle controlPoint:points[i]];
+    }
+    [path closePath];
+}
+
 @implementation ULPVisualizerView
 
 - (instancetype)initWithFrame:(CGRect)frame {
@@ -130,6 +150,15 @@ static void ULPAppendWaveLine(UIBezierPath *path, const CGPoint *points,
     [_visualContainer.layer addSublayer:_ringLayer];
     [_visualContainer.layer addSublayer:_capsLayer];
 
+    _shapeMask = [CALayer layer];
+    for (CALayer *layer in [_visualContainer.layer.sublayers copy]) {
+        [layer removeFromSuperlayer];
+        [_shapeMask addSublayer:layer];
+    }
+    _shapePaint = [CAGradientLayer layer];
+    _shapePaint.mask = _shapeMask;
+    [_visualContainer.layer addSublayer:_shapePaint];
+
     _halo = [UIView new];
     _halo.backgroundColor = [[UIColor whiteColor] colorWithAlphaComponent:0.09];
     _halo.layer.borderColor = [[UIColor whiteColor] colorWithAlphaComponent:0.28].CGColor;
@@ -164,7 +193,9 @@ static void ULPAppendWaveLine(UIBezierPath *path, const CGPoint *points,
     [self updateVisualTransform];
     BOOL radial = _visualConfig.mode == ULPVisualModeCircle ||
                   _visualConfig.mode == ULPVisualModeDot ||
-                  _visualConfig.mode == ULPVisualModeRadial;
+                  _visualConfig.mode == ULPVisualModeRadial ||
+                  _visualConfig.mode == ULPVisualModeCircularWave ||
+                  _visualConfig.mode == ULPVisualModeSmoothSpectro;
     _halo.hidden = !radial;
     _centerLabel.hidden = !radial;
     [self setNeedsLayout];
@@ -184,6 +215,22 @@ static void ULPAppendWaveLine(UIBezierPath *path, const CGPoint *points,
 - (void)updateStrokeColor {
     UIColor *color = _visualConfig.automaticColor ? (_artworkColor ?: UIColor.whiteColor) :
                      (_manualColor ?: UIColor.whiteColor);
+    UIColor *second = _visualConfig.colorMode == 1 ? ULPStyleColor(_visualConfig.color2) : color;
+    [CATransaction begin];
+    [CATransaction setDisableActions:YES];
+    _shapePaint.colors = @[(id)color.CGColor, (id)second.CGColor];
+    // Solid/artwork keep the original direct shape layers and glow. Only
+    // gradient needs the additional mask pass.
+    BOOL gradient = _visualConfig.colorMode == 1;
+    _shapePaint.hidden = !gradient;
+    for (CAShapeLayer *layer in @[_unlitLayer, _siriBackFill, _siriMiddleFill,
+         _fillLayer, _siriBackStroke, _siriMiddleStroke, _visualLayer, _ringLayer, _capsLayer]) {
+        CALayer *parent = gradient ? _shapeMask : _visualContainer.layer;
+        if (layer.superlayer == parent) continue;
+        [layer removeFromSuperlayer];
+        if (gradient) [_shapeMask addSublayer:layer];
+        else [_visualContainer.layer insertSublayer:layer below:_shapePaint];
+    }
     BOOL filled = _visualConfig.mode == ULPVisualModeDot || _visualConfig.mode == ULPVisualModeBar ||
                   _visualConfig.mode == ULPVisualModeEqualizer || _visualConfig.mode == ULPVisualModeDotMatrix;
     _visualLayer.strokeColor = filled ? UIColor.clearColor.CGColor : color.CGColor;
@@ -207,6 +254,7 @@ static void ULPAppendWaveLine(UIBezierPath *path, const CGPoint *points,
     _halo.layer.borderColor = [color colorWithAlphaComponent:0.28].CGColor;
     _halo.layer.shadowColor = color.CGColor;
     _halo.layer.shadowOpacity = _visualConfig.glow * 0.35;
+    [CATransaction commit];
 }
 
 - (void)setArtwork:(UIImage *)artwork manualColor:(UIColor *)manualColor {
@@ -243,20 +291,26 @@ static void ULPAppendWaveLine(UIBezierPath *path, const CGPoint *points,
                     _visualConfig.mode == ULPVisualModeSiri;
     CGFloat side = waveform ? width * .94 : MIN(width * 0.44, height * 0.72);
     _visualContainer.bounds = CGRectMake(0, 0, side, side);
+    CGFloat padding = _visualConfig.colorMode == 1 ? 24 : 0;
+    _shapePaint.frame = CGRectInset(_visualContainer.bounds, -padding, -padding);
+    _shapeMask.frame = _shapePaint.bounds;
+    ULPGradientPoints gradient = ULPGradientEndpoints(_visualConfig.gradientAngle, side, side);
+    CGFloat paintSide = MAX(1, side + 2 * padding);
+    _shapePaint.startPoint = CGPointMake((gradient.x1 * side + padding) / paintSide,
+                                         (gradient.y1 * side + padding) / paintSide);
+    _shapePaint.endPoint = CGPointMake((gradient.x2 * side + padding) / paintSide,
+                                       (gradient.y2 * side + padding) / paintSide);
     CGFloat verticalCenter = height < 240 ? 0.50 : 0.42;
     CGFloat coordinateScale = waveform ? width / 400.0 : 1;
     _visualContainer.center = CGPointMake(width / 2 + _visualConfig.offsetX * coordinateScale,
                                            height * verticalCenter + _visualConfig.offsetY * coordinateScale);
-    _visualLayer.frame = _visualContainer.bounds;
-    _capsLayer.frame = _visualContainer.bounds;
-    _ringLayer.frame = _visualContainer.bounds;
-    _unlitLayer.frame = _visualContainer.bounds;
-    _fillLayer.frame = _visualContainer.bounds;
-    _siriBackStroke.frame = _visualContainer.bounds;
-    _siriMiddleStroke.frame = _visualContainer.bounds;
-    _siriBackFill.frame = _visualContainer.bounds;
-    _siriMiddleFill.frame = _visualContainer.bounds;
-    CGFloat haloSide = side * (_visualConfig.mode == ULPVisualModeRadial ?
+    for (CAShapeLayer *layer in @[_visualLayer, _capsLayer, _ringLayer, _unlitLayer,
+         _fillLayer, _siriBackStroke, _siriMiddleStroke, _siriBackFill, _siriMiddleFill])
+        layer.frame = CGRectMake(padding, padding, side, side);
+    CGFloat haloSide = side * (_visualConfig.mode == ULPVisualModeSmoothSpectro ?
+                               _visualConfig.smoothSpectroSize * .82 :
+                              (_visualConfig.mode == ULPVisualModeRadial ||
+                               _visualConfig.mode == ULPVisualModeCircularWave) ?
                                _visualConfig.innerRadius * .82 : .44);
     _halo.frame = CGRectMake((side - haloSide) / 2, (side - haloSide) / 2,
                              haloSide, haloSide);
@@ -268,7 +322,8 @@ static void ULPAppendWaveLine(UIBezierPath *path, const CGPoint *points,
 - (void)updateAudio:(ULPMSH2FeatureFrame)frame zoomLevel:(float)zoomLevel {
     BOOL waveform = _visualConfig.mode == ULPVisualModeWave ||
                     _visualConfig.mode == ULPVisualModeMirror ||
-                    _visualConfig.mode == ULPVisualModeSiri;
+                    _visualConfig.mode == ULPVisualModeSiri ||
+                    _visualConfig.mode == ULPVisualModeCircularWave;
     if (!waveform && !(frame.featureMask & ULP_MSH2_SPECTRUM)) return;
     CFTimeInterval now = CACurrentMediaTime();
     if (now - _lastFrameTime + 0.002 < 1.0 / _visualConfig.framesPerSecond) return;
@@ -288,12 +343,11 @@ static void ULPAppendWaveLine(UIBezierPath *path, const CGPoint *points,
     NSUInteger count = _visualConfig.points;
     ULPVisualMode mode = _visualConfig.mode;
     BOOL radial = mode == ULPVisualModeCircle || mode == ULPVisualModeDot ||
-                  mode == ULPVisualModeRadial;
+                  mode == ULPVisualModeRadial || mode == ULPVisualModeSmoothSpectro;
     for (NSUInteger i = 0; !waveform && i < count; ++i) {
         float fraction = (float)i / (radial ? count : MAX(1, count - 1));
-        float phase = mode == ULPVisualModeRadial ?
-                      (_visualConfig.radialSymmetry == 1 ? fraction :
-                       fabsf(2 * fmodf(fraction * _visualConfig.radialSymmetry, 1) - 1)) :
+        float phase = (mode == ULPVisualModeRadial || mode == ULPVisualModeSmoothSpectro) ?
+                      ULPRadialFrequencyPhase(fraction, _visualConfig.radialSymmetry) :
                       ULPVisualIsSpectrum(mode) ?
                       ULPSpectrumFrequencyPhase(fraction, _visualConfig.mirror, _visualConfig.reverse) :
                       radial ? ULPSpectrumPhase(fraction, _visualConfig.symmetry) :
@@ -301,7 +355,8 @@ static void ULPAppendWaveLine(UIBezierPath *path, const CGPoint *points,
                        2 * fminf(fraction, 1 - fraction) : fraction);
         float position = _visualConfig.firstBand +
                          phase * (_visualConfig.lastBand - _visualConfig.firstBand) *
-                         ((ULPVisualIsSpectrum(mode) || mode == ULPVisualModeRadial) ?
+                         ((ULPVisualIsSpectrum(mode) || mode == ULPVisualModeRadial ||
+                           mode == ULPVisualModeSmoothSpectro) ?
                           _visualConfig.frequencyRange : 1);
         float target = (ULPSampleSpectrum(frame, position - 0.6f) +
                         ULPSampleSpectrum(frame, position) +
@@ -317,7 +372,27 @@ static void ULPAppendWaveLine(UIBezierPath *path, const CGPoint *points,
         CGPoint upper[128], lower[128];
         CGFloat usable = side * .9;
         CGFloat coordinateScale = side / 376.0;
-        if (siri) {
+        if (mode == ULPVisualModeCircularWave) {
+            _radialRotation = fmod(_radialRotation + dt * _visualConfig.rotationSpeed * M_PI / 180, M_PI * 2);
+            for (NSUInteger i = 0; i < count; ++i) {
+                float phase = (float)i / count;
+                CGFloat angle = phase * M_PI * 2 - M_PI_2 + _radialRotation;
+                CGFloat radius = side * ULPCircularWaveformRadius(&_wave, phase,
+                    _visualConfig.waveAmplitude, _visualConfig.innerRadius);
+                upper[i] = CGPointMake(center + cos(angle) * radius,
+                                       center + sin(angle) * radius);
+                CGFloat baseline = side * _visualConfig.innerRadius / 2;
+                lower[i] = CGPointMake(center + cos(angle) * baseline,
+                                       center + sin(angle) * baseline);
+            }
+            ULPAppendClosedWave(path, upper, count);
+            if (_visualConfig.fill) {
+                [fill appendPath:path];
+                // Same curve approximation for both contours: silence leaves
+                // no filled sliver, and even-odd fill keeps the centre clear.
+                ULPAppendClosedWave(fill, lower, count);
+            }
+        } else if (siri) {
             for (unsigned layer = 0; layer < 3; ++layer) {
                 UIBezierPath *stroke = layer == 0 ? path : [UIBezierPath bezierPath];
                 UIBezierPath *layerFill = layer == 0 ? fill : [UIBezierPath bezierPath];
@@ -366,6 +441,18 @@ static void ULPAppendWaveLine(UIBezierPath *path, const CGPoint *points,
                 [fill closePath];
             }
         }
+    } else if (mode == ULPVisualModeSmoothSpectro) {
+        CGPoint points[128];
+        _radialRotation = fmod(_radialRotation + dt * _visualConfig.rotationSpeed * M_PI / 180, M_PI * 2);
+        for (NSUInteger i = 0; i < count; ++i) {
+            CGFloat angle = (CGFloat)i / count * M_PI * 2 - M_PI_2 + _radialRotation;
+            CGFloat radius = side * ULPSmoothSpectroRadius(_levels[i],
+                _visualConfig.smoothSpectroSize, _visualConfig.smoothSpectroReactivity);
+            points[i] = CGPointMake(center + cos(angle) * radius,
+                                   center + sin(angle) * radius);
+        }
+        ULPAppendClosedWave(path, points, count);
+        if (_visualConfig.fill) [fill appendPath:path];
     } else if (mode == ULPVisualModeRadial) {
         CGFloat radius = side * _visualConfig.innerRadius / 2;
         CGFloat maxLength = side * .25 * _visualConfig.radialBarLength;
@@ -524,19 +611,21 @@ static void ULPAppendWaveLine(UIBezierPath *path, const CGPoint *points,
     _capsLayer.path = caps.CGPath;
     _unlitLayer.path = unlit.CGPath;
     _fillLayer.path = fill.CGPath;
+    _fillLayer.fillRule = mode == ULPVisualModeCircularWave ? kCAFillRuleEvenOdd : kCAFillRuleNonZero;
     _ringLayer.path = ring.CGPath;
     _ringLayer.lineWidth = MAX(0.5, _visualConfig.radialBarThickness * 0.6);
     _ringLayer.strokeColor = [[_visualConfig.automaticColor ? (_artworkColor ?: UIColor.whiteColor) :
         (_manualColor ?: UIColor.whiteColor) colorWithAlphaComponent:_visualConfig.ringOpacity] CGColor];
     _capsLayer.lineWidth = _visualConfig.capThickness;
     _capsLayer.lineCap = kCALineCapRound;
-    _visualLayer.lineWidth = (waveform || mode == ULPVisualModeLine) ? _visualConfig.thickness : 2.0;
+    _visualLayer.lineWidth = (waveform || mode == ULPVisualModeLine ||
+                             mode == ULPVisualModeSmoothSpectro) ? _visualConfig.thickness : 2.0;
     _visualLayer.lineCap = kCALineCapButt;
     if (mode == ULPVisualModeRadial) {
         _visualLayer.lineWidth = _visualConfig.radialBarThickness;
         _visualLayer.lineCap = _visualConfig.roundedCaps ? kCALineCapRound : kCALineCapButt;
     }
-    if (waveform) {
+    if (waveform && mode != ULPVisualModeCircularWave) {
         _visualLayer.lineWidth *= side / 376.0;
         _siriBackStroke.lineWidth = _visualLayer.lineWidth;
         _siriMiddleStroke.lineWidth = _visualLayer.lineWidth;

@@ -519,7 +519,7 @@
 			<key>default</key>
 			<integer>0</integer>
 			<key>detail</key>
-			<string>PSListItemsController</string>
+			<string>ULPStylePickerController</string>
 			<key>validTitles</key>
 			<array>
 				<string>Bottom</string>
@@ -539,6 +539,18 @@
 			</array>
 			<key>id</key>
 			<string>ulp.GrowFrom</string>
+			<key>ulpChoiceValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+				<integer>2</integer>
+			</array>
+			<key>ulpChoiceTitles</key>
+			<array>
+				<string>Bottom</string>
+				<string>Centre</string>
+				<string>Top</string>
+			</array>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -552,7 +564,7 @@
 			<key>default</key>
 			<integer>0</integer>
 			<key>detail</key>
-			<string>PSListItemsController</string>
+			<string>ULPStylePickerController</string>
 			<key>validTitles</key>
 			<array>
 				<string>Bottom</string>
@@ -569,6 +581,16 @@
 			</array>
 			<key>id</key>
 			<string>ulp.GrowFrom.2</string>
+			<key>ulpChoiceValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+			</array>
+			<key>ulpChoiceTitles</key>
+			<array>
+				<string>Bottom</string>
+				<string>Centre</string>
+			</array>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -1003,7 +1025,6 @@
 			<key>ulpDependsOn</key>
 			<string>SpectrumFill</string>
 		</dict>
-
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
@@ -1338,13 +1359,23 @@
 			<key>default</key>
 			<integer>0</integer>
 			<key>detail</key>
-			<string>PSListItemsController</string>
+			<string>ULPStylePickerController</string>
 			<key>validValues</key>
 			<array>
 				<integer>0</integer>
 				<integer>1</integer>
 			</array>
 			<key>validTitles</key>
+			<array>
+				<string>Line</string>
+				<string>Dot</string>
+			</array>
+			<key>ulpChoiceValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+			</array>
+			<key>ulpChoiceTitles</key>
 			<array>
 				<string>Line</string>
 				<string>Dot</string>
@@ -1368,7 +1399,483 @@
 			<key>default</key>
 			<false/>
 		</dict>
-			<dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>CIRCULAR WAVEFORM</string>
+			<key>ulpModes</key>
+			<array>
+				<integer>10</integer>
+			</array>
+			<key>id</key>
+			<string>circularWave.group</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>label</key>
+			<string>Detail</string>
+			<key>key</key>
+			<string>VisualPoints</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<integer>64</integer>
+			<key>ulpModes</key>
+			<array>
+				<integer>10</integer>
+			</array>
+			<key>id</key>
+			<string>circularWave.VisualPoints</string>
+			<key>cellClass</key>
+			<string>ULPLabeledSliderCell</string>
+			<key>height</key>
+			<integer>96</integer>
+			<key>showValue</key>
+			<true/>
+			<key>min</key>
+			<integer>12</integer>
+			<key>max</key>
+			<integer>128</integer>
+			<key>ulpInteger</key>
+			<true/>
+			<key>ulpHelp</key>
+			<string>Số điểm nội suy để vẽ đường sóng; không tăng chi tiết của nguồn âm.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>label</key>
+			<string>Inner radius</string>
+			<key>ulpModes</key>
+			<array>
+				<integer>10</integer>
+			</array>
+			<key>id</key>
+			<string>circularWave.InnerRadius</string>
+			<key>key</key>
+			<string>InnerRadius</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<real>0.38</real>
+			<key>cellClass</key>
+			<string>ULPLabeledSliderCell</string>
+			<key>height</key>
+			<integer>96</integer>
+			<key>min</key>
+			<real>0.1</real>
+			<key>max</key>
+			<real>0.8</real>
+			<key>showValue</key>
+			<true/>
+			<key>ulpHelp</key>
+			<string>Kích thước khoảng trống giữa vòng.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>label</key>
+			<string>Amplitude</string>
+			<key>key</key>
+			<string>WaveAmplitude</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<integer>1</integer>
+			<key>ulpModes</key>
+			<array>
+				<integer>10</integer>
+			</array>
+			<key>id</key>
+			<string>circularWave.WaveAmplitude</string>
+			<key>cellClass</key>
+			<string>ULPLabeledSliderCell</string>
+			<key>height</key>
+			<integer>96</integer>
+			<key>showValue</key>
+			<true/>
+			<key>min</key>
+			<integer>0</integer>
+			<key>max</key>
+			<integer>2</integer>
+			<key>ulpHelp</key>
+			<string>Độ co vào và nở ra của vòng theo mẫu PCM có dấu.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>label</key>
+			<string>Thickness</string>
+			<key>key</key>
+			<string>Thickness</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<integer>3</integer>
+			<key>ulpModes</key>
+			<array>
+				<integer>10</integer>
+			</array>
+			<key>id</key>
+			<string>circularWave.Thickness</string>
+			<key>cellClass</key>
+			<string>ULPLabeledSliderCell</string>
+			<key>height</key>
+			<integer>68</integer>
+			<key>showValue</key>
+			<true/>
+			<key>min</key>
+			<real>0.5</real>
+			<key>max</key>
+			<integer>12</integer>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>label</key>
+			<string>Rotation speed · °/s</string>
+			<key>ulpModes</key>
+			<array>
+				<integer>10</integer>
+			</array>
+			<key>id</key>
+			<string>circularWave.RotationSpeed</string>
+			<key>key</key>
+			<string>RotationSpeed</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<integer>0</integer>
+			<key>cellClass</key>
+			<string>ULPLabeledSliderCell</string>
+			<key>height</key>
+			<integer>68</integer>
+			<key>min</key>
+			<integer>-90</integer>
+			<key>max</key>
+			<integer>90</integer>
+			<key>showValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>label</key>
+			<string>Fill ring</string>
+			<key>key</key>
+			<string>SpectrumFill</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<false/>
+			<key>ulpModes</key>
+			<array>
+				<integer>10</integer>
+			</array>
+			<key>id</key>
+			<string>circularWave.SpectrumFill</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>label</key>
+			<string>Fill opacity</string>
+			<key>key</key>
+			<string>FillOpacity</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<real>0.2</real>
+			<key>ulpModes</key>
+			<array>
+				<integer>10</integer>
+			</array>
+			<key>id</key>
+			<string>circularWave.FillOpacity</string>
+			<key>cellClass</key>
+			<string>ULPLabeledSliderCell</string>
+			<key>height</key>
+			<integer>68</integer>
+			<key>showValue</key>
+			<true/>
+			<key>min</key>
+			<integer>0</integer>
+			<key>max</key>
+			<integer>1</integer>
+			<key>ulpDependsOn</key>
+			<string>SpectrumFill</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>SMOOTH SPECTRO</string>
+			<key>ulpModes</key>
+			<array>
+				<integer>11</integer>
+			</array>
+			<key>id</key>
+			<string>smoothSpectro.group</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>label</key>
+			<string>Detail</string>
+			<key>key</key>
+			<string>VisualPoints</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<integer>64</integer>
+			<key>ulpModes</key>
+			<array>
+				<integer>11</integer>
+			</array>
+			<key>id</key>
+			<string>smoothSpectro.VisualPoints</string>
+			<key>cellClass</key>
+			<string>ULPLabeledSliderCell</string>
+			<key>height</key>
+			<integer>96</integer>
+			<key>showValue</key>
+			<true/>
+			<key>min</key>
+			<integer>12</integer>
+			<key>max</key>
+			<integer>128</integer>
+			<key>ulpHelp</key>
+			<string>Số điểm nội suy của đường vòng; nguồn phổ hiện có 64 dải.</string>
+			<key>ulpInteger</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>label</key>
+			<string>Symmetry</string>
+			<key>key</key>
+			<string>RadialSymmetry</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<integer>1</integer>
+			<key>ulpModes</key>
+			<array>
+				<integer>11</integer>
+			</array>
+			<key>id</key>
+			<string>smoothSpectro.RadialSymmetry</string>
+			<key>cellClass</key>
+			<string>ULPLabeledSliderCell</string>
+			<key>height</key>
+			<integer>96</integer>
+			<key>showValue</key>
+			<true/>
+			<key>min</key>
+			<integer>1</integer>
+			<key>max</key>
+			<integer>12</integer>
+			<key>ulpHelp</key>
+			<string>Số đoạn phổ đối xứng. 1 là phổ không gấp.</string>
+			<key>ulpInteger</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>label</key>
+			<string>Size</string>
+			<key>key</key>
+			<string>SmoothSpectroSize</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<real>0.42</real>
+			<key>ulpModes</key>
+			<array>
+				<integer>11</integer>
+			</array>
+			<key>id</key>
+			<string>smoothSpectro.SmoothSpectroSize</string>
+			<key>cellClass</key>
+			<string>ULPLabeledSliderCell</string>
+			<key>height</key>
+			<integer>68</integer>
+			<key>showValue</key>
+			<true/>
+			<key>min</key>
+			<real>0.1</real>
+			<key>max</key>
+			<integer>1</integer>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>label</key>
+			<string>Reactivity</string>
+			<key>key</key>
+			<string>SmoothSpectroReactivity</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<real>0.5</real>
+			<key>ulpModes</key>
+			<array>
+				<integer>11</integer>
+			</array>
+			<key>id</key>
+			<string>smoothSpectro.SmoothSpectroReactivity</string>
+			<key>cellClass</key>
+			<string>ULPLabeledSliderCell</string>
+			<key>height</key>
+			<integer>96</integer>
+			<key>showValue</key>
+			<true/>
+			<key>min</key>
+			<integer>0</integer>
+			<key>max</key>
+			<integer>2</integer>
+			<key>ulpHelp</key>
+			<string>Độ phồng của vòng theo cường độ từng dải âm. 0 giữ hình vòng tĩnh.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>label</key>
+			<string>Thickness</string>
+			<key>key</key>
+			<string>Thickness</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<integer>3</integer>
+			<key>ulpModes</key>
+			<array>
+				<integer>11</integer>
+			</array>
+			<key>id</key>
+			<string>smoothSpectro.Thickness</string>
+			<key>cellClass</key>
+			<string>ULPLabeledSliderCell</string>
+			<key>height</key>
+			<integer>68</integer>
+			<key>showValue</key>
+			<true/>
+			<key>min</key>
+			<real>0.5</real>
+			<key>max</key>
+			<integer>12</integer>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>label</key>
+			<string>Rotation speed · °/s</string>
+			<key>key</key>
+			<string>RotationSpeed</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<integer>0</integer>
+			<key>ulpModes</key>
+			<array>
+				<integer>11</integer>
+			</array>
+			<key>id</key>
+			<string>smoothSpectro.RotationSpeed</string>
+			<key>cellClass</key>
+			<string>ULPLabeledSliderCell</string>
+			<key>height</key>
+			<integer>68</integer>
+			<key>showValue</key>
+			<true/>
+			<key>min</key>
+			<integer>-90</integer>
+			<key>max</key>
+			<integer>90</integer>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>label</key>
+			<string>Frequency range</string>
+			<key>key</key>
+			<string>FrequencyRange</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<integer>1</integer>
+			<key>ulpModes</key>
+			<array>
+				<integer>11</integer>
+			</array>
+			<key>id</key>
+			<string>smoothSpectro.FrequencyRange</string>
+			<key>cellClass</key>
+			<string>ULPLabeledSliderCell</string>
+			<key>height</key>
+			<integer>96</integer>
+			<key>showValue</key>
+			<true/>
+			<key>min</key>
+			<integer>0</integer>
+			<key>max</key>
+			<integer>1</integer>
+			<key>ulpHelp</key>
+			<string>Tỷ lệ dải phổ đã chọn dùng để vẽ vòng.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>label</key>
+			<string>Fill</string>
+			<key>key</key>
+			<string>SpectrumFill</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<false/>
+			<key>ulpModes</key>
+			<array>
+				<integer>11</integer>
+			</array>
+			<key>id</key>
+			<string>smoothSpectro.SpectrumFill</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>label</key>
+			<string>Fill opacity</string>
+			<key>key</key>
+			<string>FillOpacity</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<real>0.2</real>
+			<key>ulpModes</key>
+			<array>
+				<integer>11</integer>
+			</array>
+			<key>id</key>
+			<string>smoothSpectro.FillOpacity</string>
+			<key>cellClass</key>
+			<string>ULPLabeledSliderCell</string>
+			<key>height</key>
+			<integer>68</integer>
+			<key>showValue</key>
+			<true/>
+			<key>min</key>
+			<integer>0</integer>
+			<key>max</key>
+			<integer>1</integer>
+			<key>ulpDependsOn</key>
+			<string>SpectrumFill</string>
+		</dict>
+		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>label</key>
@@ -1453,7 +1960,7 @@
 			<key>default</key>
 			<integer>1</integer>
 			<key>detail</key>
-			<string>PSListItemsController</string>
+			<string>ULPStylePickerController</string>
 			<key>validTitles</key>
 			<array>
 				<string>Không</string>
@@ -1475,6 +1982,20 @@
 			</array>
 			<key>id</key>
 			<string>ulp.VisualSymmetry</string>
+			<key>ulpChoiceValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+				<integer>2</integer>
+				<integer>3</integer>
+			</array>
+			<key>ulpChoiceTitles</key>
+			<array>
+				<string>Không</string>
+				<string>Dọc</string>
+				<string>Ngang</string>
+				<string>Cả hai</string>
+			</array>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -1486,33 +2007,128 @@
 		</dict>
 		<dict>
 			<key>cell</key>
-			<string>PSSwitchCell</string>
+			<string>PSLinkListCell</string>
 			<key>label</key>
-			<string>Màu theo artwork</string>
+			<string>Mode</string>
 			<key>key</key>
-			<string>VisualAutoColor</string>
+			<string>ColourMode</string>
 			<key>defaults</key>
 			<string>com.luoplayer.ultimatelockscreenplayer</string>
 			<key>default</key>
-			<true/>
+			<integer>2</integer>
+			<key>validValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+				<integer>2</integer>
+			</array>
+			<key>validTitles</key>
+			<array>
+				<string>Solid</string>
+				<string>Gradient</string>
+				<string>Artwork</string>
+			</array>
 			<key>id</key>
-			<string>ulp.VisualAutoColor</string>
+			<string>style.ColourMode</string>
+			<key>detail</key>
+			<string>ULPStylePickerController</string>
+			<key>ulpChoiceValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+				<integer>2</integer>
+			</array>
+			<key>ulpChoiceTitles</key>
+			<array>
+				<string>Solid</string>
+				<string>Gradient</string>
+				<string>Artwork</string>
+			</array>
 		</dict>
 		<dict>
 			<key>cell</key>
-			<string>PSEditTextCell</string>
+			<string>PSLinkCell</string>
 			<key>label</key>
-			<string>Màu thủ công</string>
+			<string>Colour 1</string>
 			<key>key</key>
 			<string>VisualColor</string>
 			<key>defaults</key>
 			<string>com.luoplayer.ultimatelockscreenplayer</string>
 			<key>default</key>
 			<string>#FFFFFF</string>
-			<key>ulpDisabledBy</key>
-			<string>VisualAutoColor</string>
 			<key>id</key>
-			<string>ulp.VisualColor</string>
+			<string>style.VisualColor</string>
+			<key>cellClass</key>
+			<string>ULPColorCell</string>
+			<key>ulpColorPicker</key>
+			<true/>
+			<key>ulpDependsOn</key>
+			<string>ColourMode</string>
+			<key>ulpEnabledValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+			</array>
+			<key>detail</key>
+			<string>ULPStylePickerController</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>label</key>
+			<string>Colour 2</string>
+			<key>key</key>
+			<string>VisualColor2</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<string>#FF80B5</string>
+			<key>id</key>
+			<string>style.VisualColor2</string>
+			<key>cellClass</key>
+			<string>ULPColorCell</string>
+			<key>ulpColorPicker</key>
+			<true/>
+			<key>ulpDependsOn</key>
+			<string>ColourMode</string>
+			<key>ulpEnabledValues</key>
+			<array>
+				<integer>1</integer>
+			</array>
+			<key>detail</key>
+			<string>ULPStylePickerController</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>label</key>
+			<string>Gradient angle · °</string>
+			<key>key</key>
+			<string>GradientAngle</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<integer>45</integer>
+			<key>min</key>
+			<integer>0</integer>
+			<key>max</key>
+			<integer>360</integer>
+			<key>showValue</key>
+			<true/>
+			<key>cellClass</key>
+			<string>ULPLabeledSliderCell</string>
+			<key>height</key>
+			<integer>68</integer>
+			<key>id</key>
+			<string>style.GradientAngle</string>
+			<key>ulpInteger</key>
+			<true/>
+			<key>ulpDependsOn</key>
+			<string>ColourMode</string>
+			<key>ulpEnabledValues</key>
+			<array>
+				<integer>1</integer>
+			</array>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -1758,6 +2374,154 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>label</key>
+			<string>BACKGROUND</string>
+			<key>id</key>
+			<string>style.background.group</string>
+			<key>footerText</key>
+			<string>Center dim image giữ ảnh đúng tỷ lệ ở giữa; bản blur phía sau phủ kín màn hình.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
+			<key>label</key>
+			<string>Non-artwork songs</string>
+			<key>key</key>
+			<string>BackgroundMode</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<integer>0</integer>
+			<key>validValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+			</array>
+			<key>validTitles</key>
+			<array>
+				<string>Colour</string>
+				<string>Gradient</string>
+			</array>
+			<key>id</key>
+			<string>style.BackgroundMode</string>
+			<key>detail</key>
+			<string>ULPStylePickerController</string>
+			<key>ulpChoiceValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+			</array>
+			<key>ulpChoiceTitles</key>
+			<array>
+				<string>Colour</string>
+				<string>Gradient</string>
+			</array>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>label</key>
+			<string>Colour 1</string>
+			<key>key</key>
+			<string>BackgroundColor1</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<string>#19191F</string>
+			<key>id</key>
+			<string>style.BackgroundColor1</string>
+			<key>cellClass</key>
+			<string>ULPColorCell</string>
+			<key>ulpColorPicker</key>
+			<true/>
+			<key>detail</key>
+			<string>ULPStylePickerController</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>label</key>
+			<string>Colour 2</string>
+			<key>key</key>
+			<string>BackgroundColor2</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<string>#293247</string>
+			<key>id</key>
+			<string>style.BackgroundColor2</string>
+			<key>cellClass</key>
+			<string>ULPColorCell</string>
+			<key>ulpColorPicker</key>
+			<true/>
+			<key>ulpDependsOn</key>
+			<string>BackgroundMode</string>
+			<key>ulpEnabledValues</key>
+			<array>
+				<integer>1</integer>
+			</array>
+			<key>detail</key>
+			<string>ULPStylePickerController</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>label</key>
+			<string>Artwork background</string>
+			<key>key</key>
+			<string>ArtworkBackground</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<true/>
+			<key>id</key>
+			<string>style.ArtworkBackground</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
+			<key>label</key>
+			<string>Artwork background type</string>
+			<key>key</key>
+			<string>ArtworkBackgroundType</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<integer>2</integer>
+			<key>validValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+				<integer>2</integer>
+			</array>
+			<key>validTitles</key>
+			<array>
+				<string>Scaled dim image</string>
+				<string>Center dim image + blur background</string>
+				<string>Blur background</string>
+			</array>
+			<key>id</key>
+			<string>style.ArtworkBackgroundType</string>
+			<key>ulpDependsOn</key>
+			<string>ArtworkBackground</string>
+			<key>detail</key>
+			<string>ULPStylePickerController</string>
+			<key>ulpChoiceValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+				<integer>2</integer>
+			</array>
+			<key>ulpChoiceTitles</key>
+			<array>
+				<string>Scaled dim image</string>
+				<string>Center dim image + blur background</string>
+				<string>Blur background</string>
+			</array>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
 			<string>ZOOM</string>
 			<key>footerText</key>
 			<string>Zoom đọc dải âm riêng. Scale thay đổi kích thước cơ sở; Zoom làm visualizer nảy theo âm thanh.</string>
@@ -1866,6 +2630,7 @@
 				<integer>4</integer>
 				<integer>5</integer>
 				<integer>9</integer>
+				<integer>10</integer>
 			</array>
 			<key>id</key>
 			<string>wave.WaveSmoothing</string>

@@ -1,6 +1,7 @@
 #import "ULPVisualPreferences.h"
 #import <CoreFoundation/CoreFoundation.h>
 #import <math.h>
+#import "ULPStyle.h"
 
 static CFStringRef const ULPDomain = CFSTR("com.luoplayer.ultimatelockscreenplayer");
 
@@ -24,6 +25,16 @@ static BOOL ULPBool(NSDictionary *values, NSString *key, BOOL fallback) {
 
 static uint8_t ULPByte(NSDictionary *values, NSString *key, uint8_t fallback, uint8_t maximum) {
     return (uint8_t)MAX(0, MIN(maximum, round(ULPNumber(values, key, fallback))));
+}
+
+static uint32_t ULPColor(NSDictionary *values, NSString *key, uint32_t fallback) {
+    id value = values[key];
+    uint32_t rgb = fallback;
+    if ([value isKindOfClass:NSString.class]) {
+        NSString *hex = [value stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+        ULPParseHexColor(hex.UTF8String, &rgb);
+    }
+    return rgb;
 }
 
 static ULPVisualMode ULPSelectedMode(NSDictionary *values) {
@@ -126,6 +137,8 @@ ULPVisualConfig ULPLoadVisualPreferences(void) {
     NUMBER(centreGap, "CentreGap"); BOOLEAN(smoothCurve, "SmoothCurve");
     NUMBER(innerRadius, "InnerRadius"); NUMBER(radialBarLength, "RadialBarLength");
     NUMBER(radialBarThickness, "RadialBarThickness"); NUMBER(rotationSpeed, "RotationSpeed");
+    NUMBER(smoothSpectroSize, "SmoothSpectroSize");
+    NUMBER(smoothSpectroReactivity, "SmoothSpectroReactivity");
     BOOLEAN(growInward, "GrowInward"); BOOLEAN(roundedCaps, "RoundedCaps");
     BOOLEAN(showInnerRing, "ShowInnerRing"); NUMBER(ringOpacity, "RingOpacity");
     BOOLEAN(hideVisualizerButPeakCaps, "HideVisualizerButPeakCaps");
@@ -133,6 +146,15 @@ ULPVisualConfig ULPLoadVisualPreferences(void) {
     config.rows = ULPByte(values, @"Rows", config.rows, 32);
     config.radialSymmetry = ULPByte(values, @"RadialSymmetry", config.radialSymmetry, 12);
     config.peakCapsType = ULPByte(values, @"PeakCapsType", config.peakCapsType, 1);
+    config.colorMode = ULPByte(values, @"ColourMode", config.automaticColor ? 2 : 0, 255);
+    config.color1 = ULPColor(values, @"VisualColor", config.color1);
+    config.color2 = ULPColor(values, @"VisualColor2", config.color2);
+    NUMBER(gradientAngle, "GradientAngle");
+    config.backgroundMode = ULPByte(values, @"BackgroundMode", 0, 255);
+    config.backgroundColor1 = ULPColor(values, @"BackgroundColor1", config.backgroundColor1);
+    config.backgroundColor2 = ULPColor(values, @"BackgroundColor2", config.backgroundColor2);
+    BOOLEAN(artworkBackground, "ArtworkBackground");
+    config.artworkBackgroundType = ULPByte(values, @"ArtworkBackgroundType", 2, 255);
 #undef NUMBER
 #undef BOOLEAN
     return ULPVisualConfigNormalize(config);

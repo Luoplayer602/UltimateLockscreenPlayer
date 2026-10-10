@@ -26,6 +26,8 @@ typedef enum {
     ULPVisualModeEqualizer = 7,
     ULPVisualModeDotMatrix = 8,
     ULPVisualModeMirror = 9,
+    ULPVisualModeCircularWave = 10,
+    ULPVisualModeSmoothSpectro = 11,
 } ULPVisualMode;
 
 typedef enum {
@@ -98,6 +100,15 @@ typedef struct {
     float ringOpacity;
     uint8_t peakCapsType; // 0 line, 1 dot.
     bool hideVisualizerButPeakCaps;
+    float smoothSpectroSize;
+    float smoothSpectroReactivity;
+    uint8_t colorMode; // 0 solid, 1 gradient, 2 artwork.
+    uint32_t color1, color2;
+    float gradientAngle;
+    uint8_t backgroundMode; // 0 colour, 1 gradient (no artwork).
+    uint32_t backgroundColor1, backgroundColor2;
+    bool artworkBackground;
+    uint8_t artworkBackgroundType; // 0 scaled, 1 centred + blur, 2 blur.
 } ULPVisualConfig;
 
 ULPVisualConfig ULPVisualConfigDefault(void);
@@ -108,6 +119,8 @@ const char *ULPVisualModeID(ULPVisualMode mode);
 bool ULPVisualIsSpectrum(ULPVisualMode mode);
 float ULPSpectrumFrequencyPhase(float phase, bool mirror, bool reverse);
 float ULPSpectrumHeight(float level, float phase, ULPVisualConfig config);
+float ULPRadialFrequencyPhase(float turn, unsigned segments);
+float ULPSmoothSpectroRadius(float level, float size, float reactivity);
 
 #ifdef __cplusplus
 }

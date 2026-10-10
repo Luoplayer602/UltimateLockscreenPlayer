@@ -1,6 +1,7 @@
 #include "ServerInternal.h"
 
 #include <cassert>
+#include "../../Audio/ULPPreviewSpectrum.h"
 
 namespace MSHFServer {
 
@@ -51,6 +52,7 @@ float AppendRollingSample(float sample) {
 
 namespace {
 
+#if !ULP_PREVIEW_SPECTRUM
 void BuildBandWeights(float sampleRate) {
     memset(gAnalyzer.bandWeights, 0, sizeof(gAnalyzer.bandWeights));
     memset(gAnalyzer.bandWeightOffsets, 0, sizeof(gAnalyzer.bandWeightOffsets));
@@ -85,6 +87,7 @@ void BuildBandWeights(float sampleRate) {
     gAnalyzer.bandWeightOffsets[kFeatureCount] = weightCount;
     gAnalyzer.bandSampleRate = sampleRate;
 }
+#endif
 
 } // namespace
 
@@ -140,6 +143,12 @@ bool ProduceFeatureFrame(uint64_t now, FeatureFrame *frame) {
     }
 
     if (gServer.requestedFeatureMask & MSHFFeatureMaskSpectrum) {
+#if ULP_PREVIEW_SPECTRUM
+        // Preserve the accepted Preview's transient response and band order.
+        // Capture, activity qualification and the MSH2 wire format stay intact.
+        ULPPreviewSpectrum(gAnalyzer.rawWindow, kAnalysisFrames,
+            (float)source->format.mSampleRate, frame->spectrum);
+#else
         float mean = 0;
         vDSP_meanv(gAnalyzer.rawWindow, 1, &mean, kAnalysisFrames);
         float negativeMean = -mean;
@@ -177,6 +186,7 @@ bool ProduceFeatureFrame(uint64_t now, FeatureFrame *frame) {
                                        coefficients);
             frame->spectrum[band] = gAnalyzer.smoothedSpectrum[band];
         }
+#endif
     } else {
         memset(frame->spectrum, 0, sizeof(frame->spectrum));
     }

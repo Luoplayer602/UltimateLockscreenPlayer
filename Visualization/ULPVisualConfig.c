@@ -33,11 +33,15 @@ ULPVisualConfig ULPVisualConfigDefault(void) {
         .innerRadius = 0.38f, .radialBarLength = 0.45f,
         .radialBarThickness = 2, .radialSymmetry = 1,
         .roundedCaps = true, .showInnerRing = true, .ringOpacity = 0.4f,
+        .smoothSpectroSize = .42f, .smoothSpectroReactivity = .5f,
+        .colorMode = 2, .color1 = 0xFFFFFF, .color2 = 0xFF80B5, .gradientAngle = 45,
+        .backgroundColor1 = 0x19191F, .backgroundColor2 = 0x293247,
+        .artworkBackground = true, .artworkBackgroundType = 2,
     };
 }
 
 ULPVisualConfig ULPVisualConfigNormalize(ULPVisualConfig config) {
-    if (config.mode < ULPVisualModeCircle || config.mode > ULPVisualModeMirror)
+    if (config.mode < ULPVisualModeCircle || config.mode > ULPVisualModeSmoothSpectro)
         config.mode = ULPVisualModeCircle;
     if (config.preset < ULPVisualPresetCustom || config.preset > ULPVisualPresetWaveform)
         config.preset = ULPVisualPresetCustom;
@@ -81,7 +85,8 @@ ULPVisualConfig ULPVisualConfigNormalize(ULPVisualConfig config) {
     config.unlitOpacity = ULPBound(config.unlitOpacity, 0, 1);
     config.thickness = ULPBound(config.thickness, 0.5f,
         config.mode == ULPVisualModeWave || config.mode == ULPVisualModeMirror ||
-        config.mode == ULPVisualModeSiri ? 12 : 8);
+        config.mode == ULPVisualModeSiri || config.mode == ULPVisualModeCircularWave ||
+        config.mode == ULPVisualModeSmoothSpectro ? 12 : 8);
     config.waveAmplitude = ULPBound(config.waveAmplitude, 0, 2);
     config.waveSmoothing = ULPBound(config.waveSmoothing, 0, 1);
     config.centreGap = ULPBound(config.centreGap, 0, 80);
@@ -94,6 +99,15 @@ ULPVisualConfig ULPVisualConfigNormalize(ULPVisualConfig config) {
     if (config.radialSymmetry > 12) config.radialSymmetry = 12;
     config.ringOpacity = ULPBound(config.ringOpacity, 0, 1);
     if (config.peakCapsType > 1) config.peakCapsType = 0;
+    config.smoothSpectroSize = ULPBound(config.smoothSpectroSize, .1f, 1);
+    config.smoothSpectroReactivity = ULPBound(config.smoothSpectroReactivity, 0, 2);
+    if (config.colorMode > 2) config.colorMode = 2;
+    config.automaticColor = config.colorMode == 2;
+    config.color1 &= 0xFFFFFF; config.color2 &= 0xFFFFFF;
+    config.gradientAngle = ULPBound(config.gradientAngle, 0, 360);
+    if (config.backgroundMode > 1) config.backgroundMode = 0;
+    config.backgroundColor1 &= 0xFFFFFF; config.backgroundColor2 &= 0xFFFFFF;
+    if (config.artworkBackgroundType > 2) config.artworkBackgroundType = 2;
     return config;
 }
 
@@ -104,7 +118,8 @@ ULPVisualConfig ULPVisualConfigDefaultForMode(ULPVisualMode mode) {
     if (mode == ULPVisualModeDotMatrix) { config.points = 24; config.rows = 12; }
     if (mode == ULPVisualModeRadial) config.points = 64;
     if (mode == ULPVisualModeWave || mode == ULPVisualModeMirror ||
-        mode == ULPVisualModeSiri) {
+        mode == ULPVisualModeSiri || mode == ULPVisualModeCircularWave ||
+        mode == ULPVisualModeSmoothSpectro) {
         config.thickness = 3;
         config.symmetry = ULPSymmetryNone;
     }
@@ -120,6 +135,8 @@ const char *ULPVisualModeID(ULPVisualMode mode) {
         case ULPVisualModeSiri: return "siri";
         case ULPVisualModeWave: return "waveform";
         case ULPVisualModeMirror: return "mirror";
+        case ULPVisualModeCircularWave: return "circular-waveform";
+        case ULPVisualModeSmoothSpectro: return "smooth-spectro";
         case ULPVisualModeRadial: return "spectro";
         case ULPVisualModeDot: return "dotted-orbit";
         default: return "classic-circle";
@@ -141,6 +158,18 @@ float ULPSpectrumFrequencyPhase(float phase, bool mirror, bool reverse) {
 float ULPSpectrumHeight(float level, float phase, ULPVisualConfig config) {
     float taper = 1 - config.edgeFade * fabsf(2 * ULPBound(phase, 0, 1) - 1);
     return powf(ULPBound(level, 0, 1), config.dynamics) * taper * config.barHeight;
+}
+
+float ULPRadialFrequencyPhase(float turn, unsigned segments) {
+    turn = ULPBound(turn, 0, 1);
+    segments = segments < 1 ? 1 : (segments > 12 ? 12 : segments);
+    return segments == 1 ? turn : fabsf(2 * fmodf(turn * segments, 1) - 1);
+}
+
+float ULPSmoothSpectroRadius(float level, float size, float reactivity) {
+    // Fraction of the square visual layer; matches the demo's 400-unit frame.
+    return ULPBound(size, .1f, 1) * .5f +
+           ULPBound(level, 0, 1) * .1625f * ULPBound(reactivity, 0, 2);
 }
 
 ULPVisualMode ULPVisualModeForPreset(ULPVisualPreset preset) {

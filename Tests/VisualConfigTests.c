@@ -12,6 +12,8 @@ int main(void) {
     assert(defaults.symmetry == ULPSymmetryVertical);
     assert(defaults.mode == ULPVisualModeCircle);
     assert(defaults.scale == 1.0f && defaults.zoomStrength == 0.18f);
+    assert(defaults.colorMode == 2 && defaults.automaticColor);
+    assert(defaults.artworkBackground && defaults.artworkBackgroundType == 2);
     assert(ULPVisualModeForPreset(ULPVisualPresetSpectrumBars) == ULPVisualModeBar);
     assert(ULPVisualModeForPreset(ULPVisualPresetSiriFlow) == ULPVisualModeSiri);
 
@@ -45,10 +47,10 @@ int main(void) {
     assert(invalid.scale == 1.8f && invalid.zoomStrength == 0);
 
     // Distinct stable storage IDs must survive adding new modes.
-    for (int mode = 0; mode <= ULPVisualModeMirror; ++mode) {
+    for (int mode = 0; mode <= ULPVisualModeSmoothSpectro; ++mode) {
         ULPVisualConfig c = ULPVisualConfigDefaultForMode((ULPVisualMode)mode);
         assert(c.mode == (ULPVisualMode)mode);
-        for (int other = mode + 1; other <= ULPVisualModeMirror; ++other)
+        for (int other = mode + 1; other <= ULPVisualModeSmoothSpectro; ++other)
             assert(strcmp(ULPVisualModeID((ULPVisualMode)mode),
                           ULPVisualModeID((ULPVisualMode)other)) != 0);
     }
@@ -98,6 +100,42 @@ int main(void) {
     assert(spectro.innerRadius == .8f && spectro.radialBarLength == 0);
     assert(spectro.radialBarThickness == 12 && spectro.rotationSpeed == -90);
     assert(spectro.radialSymmetry == 1 && spectro.peakCapsType == 0);
+    ULPVisualConfig circular = ULPVisualConfigDefaultForMode(ULPVisualModeCircularWave);
+    assert(circular.mode == 10 && circular.points == 64 && circular.thickness == 3);
+    assert(circular.symmetry == ULPSymmetryNone && circular.innerRadius == .38f);
+    assert(circular.waveAmplitude == 1 && circular.rotationSpeed == 0 && !circular.fill);
+    assert(strcmp(ULPVisualModeID(circular.mode), "circular-waveform") == 0);
+    circular.thickness = 20; circular.waveAmplitude = -1; circular.rotationSpeed = INFINITY;
+    circular = ULPVisualConfigNormalize(circular);
+    assert(circular.thickness == 12 && circular.waveAmplitude == 0 && circular.rotationSpeed == -90);
+    ULPVisualConfig smooth = ULPVisualConfigDefaultForMode(ULPVisualModeSmoothSpectro);
+    assert(smooth.mode == 11 && smooth.points == 64 && smooth.thickness == 3);
+    assert(smooth.smoothSpectroSize == .42f && smooth.smoothSpectroReactivity == .5f);
+    assert(smooth.radialSymmetry == 1 && smooth.symmetry == ULPSymmetryNone && !smooth.fill);
+    assert(strcmp(ULPVisualModeID(smooth.mode), "smooth-spectro") == 0);
+    smooth.smoothSpectroSize = NAN; smooth.smoothSpectroReactivity = 99; smooth.thickness = 20;
+    smooth = ULPVisualConfigNormalize(smooth);
+    assert(smooth.smoothSpectroSize == .1f && smooth.smoothSpectroReactivity == 2 && smooth.thickness == 12);
+    // Silence and zero reactivity give the base circle; loud bands only bulge
+    // outward. Size controls the base independently of audio gain.
+    assert(fabsf(ULPSmoothSpectroRadius(0, .42f, 2) - .21f) < 1e-6f);
+    assert(fabsf(ULPSmoothSpectroRadius(1, .42f, 0) - .21f) < 1e-6f);
+    assert(fabsf(ULPSmoothSpectroRadius(1, .42f, .5f) - .29125f) < 1e-6f);
+    assert(fabsf(ULPSmoothSpectroRadius(1, 1, 2) - .825f) < 1e-6f);
+    assert(isfinite(ULPSmoothSpectroRadius(NAN, INFINITY, NAN)));
+    // One segment is unfolded, while multiple segments fold both halves and
+    // repeat without changing the 1-segment frequency order.
+    assert(ULPRadialFrequencyPhase(.25f, 1) == .25f);
+    assert(ULPRadialFrequencyPhase(.125f, 2) == .5f);
+    assert(ULPRadialFrequencyPhase(.375f, 2) == .5f);
+    assert(ULPRadialFrequencyPhase(.125f, 2) == ULPRadialFrequencyPhase(.625f, 2));
+    assert(ULPRadialFrequencyPhase(.25f, 2) == 0);
+    ULPVisualConfig style = defaults;
+    style.colorMode = 1; style.color1 = 0xFF010203;
+    style.gradientAngle = 999; style.backgroundMode = 99; style.artworkBackgroundType = 99;
+    style = ULPVisualConfigNormalize(style);
+    assert(!style.automaticColor && style.color1 == 0x010203 && style.gradientAngle == 360);
+    assert(style.backgroundMode == 0 && style.artworkBackgroundType == 2);
     puts("VisualConfigTests OK");
     return 0;
 }

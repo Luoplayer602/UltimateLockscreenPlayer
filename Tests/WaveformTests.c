@@ -42,6 +42,32 @@ int main(void) {
     frame.waveform[0]=NAN;frame.waveform[1]=INFINITY;frame.waveform[2]=4;
     ULPWaveformUpdate(&a,&frame,0,.016f);
     assert(a.samples[0]==0 && a.samples[1]==0 && a.samples[2]==1);
+    // A circular waveform retains polarity and wraps both ends continuously.
+    ULPWaveformState loop = {0};
+    loop.samples[0] = .6f; loop.samples[32] = -.6f; loop.samples[63] = -.4f;
+    assert(fabsf(ULPWaveformLoopSample(&loop, 0) - .6f) < 1e-6f);
+    assert(ULPWaveformLoopSample(&loop, 1) == ULPWaveformLoopSample(&loop, 0));
+    assert(fabsf(ULPWaveformLoopSample(&loop, .5f) + .6f) < 1e-6f);
+    assert(fabsf(ULPWaveformLoopSample(&loop, 63.5f/64) - .1f) < 1e-6f);
+    assert(fabsf(ULPWaveformLoopSample(&loop, -1e-5f) -
+                 ULPWaveformLoopSample(&loop, 1e-5f)) < .002f);
+    assert(ULPCircularWaveformRadius(&loop, 0, 1, .38f) > .19f);
+    assert(ULPCircularWaveformRadius(&loop, .5f, 1, .38f) < .19f);
+    for (int i=0;i<128;i++) {
+        float phase = i/128.f;
+        assert(fabsf(ULPCircularWaveformRadius(&loop, phase, 0, .38f) - .19f) < 1e-6f);
+        float radius = ULPCircularWaveformRadius(&loop, phase, 2, .1f);
+        assert(radius >= .01f && radius <= .49f);
+    }
+    assert(ULPCircularWaveformRadius(&loop, .5f, 2, .1f) == .01f);
+    loop.samples[0] = 1;
+    assert(ULPCircularWaveformRadius(&loop, 0, 2, .8f) == .49f);
+    assert(isfinite(ULPCircularWaveformRadius(&loop, NAN, INFINITY, NAN)));
+    loop.samples[0] = NAN;
+    assert(ULPWaveformLoopSample(&loop, 0) == 0);
+    ULPWaveformUpdate(&loop, &(ULPMSH2FeatureFrame){.featureMask=ULP_MSH2_WAVEFORM}, 0, .016f);
+    for(int i=0;i<64;i++)
+        assert(fabsf(ULPCircularWaveformRadius(&loop, i/64.f, 1, .38f) - .19f) < 1e-6f);
     frame.featureMask=ULP_MSH2_SPECTRUM;
     ULPWaveformUpdate(&a,&frame,0,.016f);
     for(int i=0;i<64;i++) assert(a.samples[i]==0); // No invented wave without PCM.

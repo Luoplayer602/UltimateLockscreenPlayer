@@ -11,9 +11,11 @@
 #import "Audio/MSH2Client.h"
 #import "Playback/ULPLifecycle.h"
 #import "Playback/ULPNowPlaying.h"
+#import "Playback/ULPListPlacement.h"
 #import "Visualization/ULPSignal.h"
 #import "Visualization/ULPVisualPreferences.h"
 #import "UI/ULPLockScreenView.h"
+#import "UI/ULPArtworkImage.h"
 #import "UI/ULPBackgroundView.h"
 #import "UI/ULPVisualizerView.h"
 #import "UI/ULPVolumeHUDView.h"
@@ -29,6 +31,14 @@ static __weak ULPBackgroundView *gBackground;
 static __weak ULPBackgroundView *gFixedBackground;
 static __weak ULPVisualizerView *gVisualizer;
 static __weak UIView *gMediaView;
+static __weak UIScrollView *gManagedList;
+static ULPNowPlayingSnapshot *gLastSnapshot;
+static UIImage *gRenderedArtwork;
+static NSData *gRenderedArtworkData;
+static NSString *gArtworkTrack;
+static BOOL gRepairingPlayer;
+static uint64_t gLastPlayerScanMs;
+static uint64_t gLastMissingHostLogMs;
 static __weak UIView *gCoverSheetView;
 static __weak ULPVolumeHUDView *gVolumeHUD;
 static BOOL gEnabled;
@@ -152,6 +162,36 @@ static uint64_t ULPNowMs(void);
 static void ULPManageMediaAlpha(UIView *view, BOOL dim, CGFloat dimAlpha);
 static BOOL ULPShouldShowPlayer(void);
 static void ULPStopPauseDecay(void);
+static void ULPManageListPositionForList(UIScrollView *list, BOOL active);
+static void ULPSetMediaDim(UIView *mediaView, BOOL dim);
+static void ULPEnsurePlayerForMediaView(UIView *mediaView);
+static void ULPCheckPlayer(BOOL force);
+
+static void ULPCachePreviewArtwork(UIImage *artwork) {
+    static dispatch_queue_t queue;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{ queue = dispatch_queue_create("com.luoplayer.ulp.preview-artwork", DISPATCH_QUEUE_SERIAL); });
+    dispatch_async(queue, ^{
+        @autoreleasepool {
+            NSString *directory = @"/var/mobile/Library/Caches/ULP";
+            NSString *path = [directory stringByAppendingPathComponent:@"preview-artwork.jpg"];
+            if (!artwork) { [NSFileManager.defaultManager removeItemAtPath:path error:nil]; return; }
+            [NSFileManager.defaultManager createDirectoryAtPath:directory withIntermediateDirectories:YES attributes:nil error:nil];
+            [UIImageJPEGRepresentation(artwork, .75) writeToFile:path atomically:YES];
+        }
+    });
+}
+
+static void ULPReceiveArtwork(UIImage *artwork) {
+    if (artwork == gRenderedArtwork) return;
+    if (artwork && !ULPArtworkShouldUpgrade(artwork, gRenderedArtwork)) return;
+    gRenderedArtwork = artwork;
+    gRenderedArtworkData = nil;
+    ULPCachePreviewArtwork(artwork);
+    [gBackground setArtwork:artwork];
+    [gFixedBackground setArtwork:artwork renderedArtwork:gBackground.renderedArtwork];
+    [gVisualizer setArtwork:artwork manualColor:gVisualManualColor];
+}
 
 static void ULPOpenNowPlayingSource(void) {
     ULPDiagnosticLog(@"Player card tapped");
@@ -251,56 +291,69 @@ static void ULPManageMediaAlpha(UIView *view, BOOL dim, CGFloat dimAlpha) {
     }
 }
 
+@interface ULPListPlacementState : NSObject
+@property (nonatomic) ULPListPlacement placement;
+@property (nonatomic) BOOL applying;
+@end
+@implementation ULPListPlacementState
+@end
+
+static void ULPSettleListPosition(UIScrollView *list) {
+    if (!list) return;
+    ULPListPlacementState *state = objc_getAssociatedObject(list, &kULPOriginalListInsetKey);
+    if (!state || state.applying || list != gManagedList || !ULPShouldShowPlayer()) return;
+    CGPoint offset = list.contentOffset;
+    ULPListPlacement placement = state.placement;
+    CGFloat target = ULPListPlacementRestingOffset(&placement, offset.y,
+        list.dragging || list.decelerating || list.tracking);
+    if (fabs(target - offset.y) < .5) return;
+    state.applying = YES;
+    list.contentOffset = CGPointMake(offset.x, target);
+    state.applying = NO;
+    ULPDiagnosticLog([NSString stringWithFormat:@"Player list settled offset=%.0f→%.0f base=%.0f applied=%.0f",
+        offset.y, target, state.placement.baseTop, state.placement.appliedTop]);
+}
+
 static void ULPManageListPosition(UIView *mediaView, BOOL active) {
     UIScrollView *list = nil;
     for (UIView *ancestor = mediaView.superview; ancestor; ancestor = ancestor.superview) {
-        if ([NSStringFromClass(ancestor.class) isEqualToString:@"NCNotificationListView"] &&
-            [ancestor isKindOfClass:[UIScrollView class]]) {
-            list = (UIScrollView *)ancestor;
-            break;
+        if ([ancestor isKindOfClass:NSClassFromString(@"NCNotificationListView")]) {
+            list = (UIScrollView *)ancestor; break;
         }
     }
-    if (!list) return;
-    NSValue *saved = objc_getAssociatedObject(list, &kULPOriginalListInsetKey);
-    if (active && !saved) {
-        UIEdgeInsets original = list.contentInset;
-        objc_setAssociatedObject(list, &kULPOriginalListInsetKey,
-                                 [NSValue valueWithUIEdgeInsets:original],
-                                 OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-        CGFloat shift = MIN(120, CGRectGetHeight(list.bounds) * 0.18);
-        UIEdgeInsets adjusted = original;
-        adjusted.top += shift;
-        CGPoint offset = list.contentOffset;
-        list.contentInset = adjusted;
-        list.contentOffset = CGPointMake(offset.x, offset.y - shift);
-        ULPDiagnosticLog([NSString stringWithFormat:
-            @"Native player list moved down %.0fpt inset=%.0f→%.0f",
-            shift, original.top, adjusted.top]);
-    } else if (active && saved) {
-        UIEdgeInsets original = saved.UIEdgeInsetsValue;
-        CGFloat shift = MIN(120, CGRectGetHeight(list.bounds) * 0.18);
-        CGFloat targetTop = original.top + shift;
-        CGFloat currentTop = list.contentInset.top;
-        if (fabs(currentTop - targetTop) > 0.5) {
-            BOOL atTop = fabs(list.contentOffset.y + currentTop) < 2;
-            UIEdgeInsets adjusted = list.contentInset;
-            adjusted.top = targetTop;
-            list.contentInset = adjusted;
-            if (atTop && !list.dragging && !list.decelerating)
-                list.contentOffset = CGPointMake(list.contentOffset.x, -targetTop);
-            ULPDiagnosticLog([NSString stringWithFormat:
-                @"Native player list position restored inset=%.0f→%.0f atTop=%d",
-                currentTop, targetTop, atTop]);
-        }
-    } else if (!active && saved) {
-        UIEdgeInsets original = saved.UIEdgeInsetsValue;
-        CGFloat shift = list.contentInset.top - original.top;
-        CGPoint offset = list.contentOffset;
-        list.contentInset = original;
-        list.contentOffset = CGPointMake(offset.x, offset.y + shift);
-        objc_setAssociatedObject(list, &kULPOriginalListInsetKey, nil,
-                                 OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    if (gManagedList && gManagedList != list)
+        ULPManageListPositionForList(gManagedList, NO);
+    if (list) ULPManageListPositionForList(list, active);
+    gManagedList = active ? list : nil;
+}
+
+static void ULPManageListPositionForList(UIScrollView *list, BOOL active) {
+    if (!list || list.dragging || list.decelerating) return;
+    ULPListPlacementState *state = objc_getAssociatedObject(list, &kULPOriginalListInsetKey);
+    if (!state && !active) return;
+    if (!state) {
+        state = [ULPListPlacementState new];
+        objc_setAssociatedObject(list, &kULPOriginalListInsetKey, state, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
+    ULPListPlacement placement = state.placement;
+    UIEdgeInsets inset = list.contentInset;
+    CGFloat shift = MIN(120, CGRectGetHeight(list.bounds) * .18);
+    if (active && placement.active && fabs(shift - placement.shift) < .5) {
+        ULPSettleListPosition(list);
+        return;
+    }
+    if (!active && !placement.active) return;
+    CGFloat target = active ? ULPListPlacementBegin(&placement, inset.top, shift) : ULPListPlacementEnd(&placement);
+    state.placement = placement;
+    CGPoint offset = list.contentOffset;
+    BOOL atTop = fabs(offset.y + inset.top) < 2;
+    inset.top = target;
+    state.applying = YES;
+    list.contentInset = inset;
+    state.applying = NO;
+    list.contentOffset = atTop ? CGPointMake(offset.x, -target) : offset;
+    ULPDiagnosticLog([NSString stringWithFormat:@"Player list placement active=%d base=%.0f applied=%.0f",
+        active, placement.baseTop, placement.appliedTop]);
 }
 
 static BOOL ULPShouldShowPlayer(void) {
@@ -310,20 +363,12 @@ static BOOL ULPShouldShowPlayer(void) {
 static void ULPRefreshPresentation(void) {
     BOOL active = ULPIsActive();
     BOOL showPlayer = ULPShouldShowPlayer();
-    gPlayer.hidden = !showPlayer;
     if (gVolumeHUD.superview == gCoverSheetView) [gCoverSheetView bringSubviewToFront:gVolumeHUD];
-    ULPManageMediaAlpha(gMediaView, showPlayer, 0.001);
-    UIView *platter = gMediaView.superview.superview;
-    if ([platter isKindOfClass:NSClassFromString(@"PLPlatterView")]) {
-        PLPlatterView *nativePlatter = (PLPlatterView *)platter;
-        if ([nativePlatter respondsToSelector:@selector(backgroundMaterialView)])
-            ULPManageMediaAlpha(nativePlatter.backgroundMaterialView, showPlayer, 0);
-        if ([nativePlatter respondsToSelector:@selector(mainOverlayView)])
-            ULPManageMediaAlpha(nativePlatter.mainOverlayView, showPlayer, 0);
-        if ([nativePlatter respondsToSelector:@selector(backgroundView)])
-            ULPManageMediaAlpha(nativePlatter.backgroundView, showPlayer, 0);
-    }
-    ULPManageListPosition(gMediaView, showPlayer);
+    BOOL attached = gCoverSheetView && gPlayer && gPlayer.superview && gMediaView.window &&
+                    gPlayer.bounds.size.height >= 80 && [gPlayer isDescendantOfView:gCoverSheetView];
+    gPlayer.hidden = !(showPlayer && attached);
+    ULPSetMediaDim(gMediaView, showPlayer && attached);
+    ULPManageListPosition(gMediaView, showPlayer && attached);
     BOOL revealDate = gSceneShown && !active && gCoverSheetVisible && !ULPShouldHideDate();
     if (revealDate) ULPFadeDateViews(gCoverSheetView, YES);
     ULPManageDateViews(gCoverSheetView, ULPShouldHideDate());
@@ -370,16 +415,127 @@ static BOOL ULPIsInsideCoverSheet(UIView *view) {
     return NO;
 }
 
+static void ULPSetMediaDim(UIView *mediaView, BOOL dim) {
+    ULPManageMediaAlpha(mediaView, dim, .001);
+    for (UIView *ancestor = mediaView.superview; ancestor && ancestor != gCoverSheetView;
+         ancestor = ancestor.superview) {
+        if (![ancestor isKindOfClass:NSClassFromString(@"PLPlatterView")]) continue;
+        PLPlatterView *platter = (PLPlatterView *)ancestor;
+        if ([platter respondsToSelector:@selector(backgroundMaterialView)])
+            ULPManageMediaAlpha(platter.backgroundMaterialView, dim, 0);
+        if ([platter respondsToSelector:@selector(mainOverlayView)])
+            ULPManageMediaAlpha(platter.mainOverlayView, dim, 0);
+        if ([platter respondsToSelector:@selector(backgroundView)])
+            ULPManageMediaAlpha(platter.backgroundView, dim, 0);
+        break;
+    }
+}
+
+static UIView *ULPPlayerHost(UIView *mediaView) {
+    if (!gCoverSheetView || !mediaView.window || mediaView.hidden ||
+        ![mediaView isDescendantOfView:gCoverSheetView]) return nil;
+    for (UIView *view = mediaView.superview; view && view != gCoverSheetView; view = view.superview) {
+        if (view.hidden) return nil;
+        if ([view isKindOfClass:NSClassFromString(@"PLPlatterCustomContentView")]) return view;
+    }
+    return nil;
+}
+
+static UIView *ULPFindNativeMedia(UIView *root) {
+    if (root.hidden || [root isKindOfClass:ULPLockScreenView.class]) return nil;
+    if ([root isKindOfClass:NSClassFromString(@"CSMediaControlsView")] && ULPPlayerHost(root)) return root;
+    for (UIView *child in root.subviews.reverseObjectEnumerator) {
+        UIView *found = ULPFindNativeMedia(child);
+        if (found) return found;
+    }
+    return nil;
+}
+
+static void ULPEnsurePlayerForMediaView(UIView *mediaView) {
+    if (!gEnabled || gRepairingPlayer) return;
+    UIView *host = ULPPlayerHost(mediaView);
+    if (!host || host.bounds.size.width < 120 || host.bounds.size.height < 80) return;
+    if (gMediaView && mediaView != gMediaView && ULPPlayerHost(gMediaView) &&
+        ULPFindNativeMedia(gCoverSheetView) != mediaView) return;
+    gRepairingPlayer = YES;
+    // One replacement per current host. The association survives a native
+    // controller removing its sibling views during a session restart.
+    ULPLockScreenView *player = objc_getAssociatedObject(host, &kULPReplacementKey);
+    BOOL created = !player;
+    if (!player) {
+        player = [[ULPLockScreenView alloc] initWithFrame:host.bounds];
+        player.hidden = YES;
+        player.commandHandler = ^(NSInteger command) { [gNowPlaying sendCommand:command]; };
+        player.openSourceHandler = ^{ ULPOpenNowPlayingSource(); };
+        player.diagnosticHandler = ^(NSString *message) { ULPDiagnosticLog(message); };
+        __weak ULPLockScreenView *weakPlayer = player;
+        player.artworkHandler = ^(UIImage *artwork) {
+            if (weakPlayer != gPlayer || !artwork) return;
+            if (artwork != gRenderedArtwork)
+                ULPDiagnosticLog([NSString stringWithFormat:@"Player artwork recovered source=%@ pid=%d",
+                    (gLastSnapshot.artworkData.length || gLastSnapshot.artworkImage) ? @"snapshot" : @"native-host",
+                    gLastSnapshot.processID]);
+            ULPReceiveArtwork(artwork);
+        };
+        objc_setAssociatedObject(host, &kULPReplacementKey, player, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    }
+    BOOL changedHost = mediaView != gMediaView || player != gPlayer;
+    if (changedHost) {
+        ULPSetMediaDim(gMediaView, NO);
+        if (gPlayer != player) gPlayer.hidden = YES;
+    }
+    gMediaView = mediaView; gPlayer = player;
+    BOOL reattached = player.superview != host;
+    if (reattached) [host addSubview:player];
+    for (UIView *child in host.subviews.copy)
+        if (child != player && [child isKindOfClass:ULPLockScreenView.class]) [child removeFromSuperview];
+    BOOL resized = !CGRectEqualToRect(player.frame, host.bounds);
+    if (resized) { player.frame = host.bounds; [player setNeedsLayout]; }
+    if (player.alpha != 1) player.alpha = 1;
+    BOOL componentsRepaired = [player repairComponents];
+    if (host.subviews.lastObject != player) [host bringSubviewToFront:player];
+    if ((created || reattached || changedHost) && gLastSnapshot)
+        [player updateNowPlaying:gLastSnapshot];
+    if (created || reattached || changedHost || resized || componentsRepaired)
+        ULPDiagnosticLog([NSString stringWithFormat:
+            @"Player repair created=%d reattached=%d hostChanged=%d resized=%d components=%d host=%p media=%p size=%.0fx%.0f",
+            created, reattached, changedHost, resized, componentsRepaired, host, mediaView,
+            host.bounds.size.width, host.bounds.size.height]);
+    gRepairingPlayer = NO;
+}
+
+static void ULPCheckPlayer(BOOL force) {
+    if (!gEnabled || gRepairingPlayer || !gCoverSheetVisible || !gCoverSheetView.window) return;
+    UIView *host = ULPPlayerHost(gMediaView);
+    if (host) ULPEnsurePlayerForMediaView(gMediaView);
+    uint64_t now = ULPNowMs();
+    BOOL healthy = host && gPlayer.superview == host && gPlayer.bounds.size.height >= 80;
+    if (force || (!healthy && now - gLastPlayerScanMs >= 2000)) {
+        gLastPlayerScanMs = now;
+        UIView *media = ULPFindNativeMedia(gCoverSheetView);
+        if (media) ULPEnsurePlayerForMediaView(media);
+        healthy = gPlayer && gPlayer.superview == ULPPlayerHost(gMediaView) && gPlayer.bounds.size.height >= 80;
+    }
+    if (force || (gHasNowPlaying && !healthy && now - gLastMissingHostLogMs >= 5000)) {
+        gLastMissingHostLogMs = now;
+        ULPDiagnosticLog([NSString stringWithFormat:@"Player audit healthy=%d media=%p player=%p parent=%p window=%d pid=%d artwork=%d",
+            healthy, gMediaView, gPlayer, gPlayer.superview, gPlayer.window != nil,
+            gLastSnapshot.processID, gPlayer.currentArtwork != nil]);
+    }
+}
+
 %hook CSCoverSheetViewController
 
 - (void)viewDidLoad {
     %orig;
     if (!gEnabled) return;
     ULPBackgroundView *fixedBackground = [[ULPBackgroundView alloc] initWithFrame:self.view.bounds];
+    fixedBackground.visualConfig = gVisualConfig;
     fixedBackground.hidden = YES;
     [self.view insertSubview:fixedBackground atIndex:0];
     gFixedBackground = fixedBackground;
     ULPBackgroundView *background = [[ULPBackgroundView alloc] initWithFrame:self.view.bounds];
+    background.visualConfig = gVisualConfig;
     background.hidden = YES;
     [self.view insertSubview:background aboveSubview:fixedBackground];
     [background attachSwipeRecognitionToView:self.view];
@@ -395,6 +551,11 @@ static BOOL ULPIsInsideCoverSheet(UIView *view) {
     gVolumeHUD = volumeHUD;
     gSceneShown = NO;
     gCoverSheetView = self.view;
+    if (gRenderedArtwork) {
+        [background setArtwork:gRenderedArtwork];
+        [fixedBackground setArtwork:gRenderedArtwork renderedArtwork:background.renderedArtwork];
+        [visualizer setArtwork:gRenderedArtwork manualColor:gVisualManualColor];
+    }
     ULPDiagnosticLog(@"CoverSheet moving and fixed artwork backgrounds attached");
 }
 
@@ -408,10 +569,14 @@ static BOOL ULPIsInsideCoverSheet(UIView *view) {
         gFixedBackground.center = CGPointMake(width / 2, (height - overscan) / 2);
         gBackground.bounds = CGRectMake(0, 0, width, height + overscan);
         gBackground.center = CGPointMake(width / 2, (height - overscan) / 2);
+        CGRect viewport = CGRectMake(0, overscan, width, height);
+        gFixedBackground.contentViewport = viewport;
+        gBackground.contentViewport = viewport;
         gVisualizer.frame = self.view.bounds;
         // Bounds/center remain stable while the HUD is sliding in or out.
         gVolumeHUD.bounds = CGRectMake(0, 0, 54, 56);
         gVolumeHUD.center = CGPointMake(33, height * .20);
+        ULPCheckPlayer(NO);
         ULPRefreshPresentation();
     }
 }
@@ -422,14 +587,27 @@ static BOOL ULPIsInsideCoverSheet(UIView *view) {
                                [self authenticated];
     ULPRefreshPresentation();
     %orig;
+    ULPDiagnosticLog(@"CoverSheet appearing; checking native media host");
+    ULPCheckPlayer(YES);
+    [gNowPlaying requestRefresh];
     ULPRefreshPresentation();
 }
 
 - (void)viewDidDisappear:(BOOL)animated {
     %orig;
     gCoverSheetVisible = NO;
+    ULPDiagnosticLog(@"CoverSheet disappeared; keeping data observers active");
     [gVolumeHUD dismissImmediately];
     ULPRefreshPresentation();
+}
+
+- (void)viewDidAppear:(BOOL)animated {
+    %orig;
+    if (!gEnabled || gCoverSheetView != self.view) return;
+    ULPSettleListPosition(gManagedList);
+    ULPDiagnosticLog([NSString stringWithFormat:@"CoverSheet settled list offset=%.0f inset=%.0f dragging=%d decelerating=%d",
+        gManagedList.contentOffset.y, gManagedList.contentInset.top,
+        gManagedList.dragging, gManagedList.decelerating]);
 }
 
 %end
@@ -452,84 +630,95 @@ static BOOL ULPIsInsideCoverSheet(UIView *view) {
 
 %hook NCNotificationListView
 
+- (void)setContentOffset:(CGPoint)offset {
+    ULPListPlacementState *state = objc_getAssociatedObject(self, &kULPOriginalListInsetKey);
+    if (gEnabled && state && !state.applying && self == gManagedList && ULPShouldShowPlayer()) {
+        ULPListPlacement placement = state.placement;
+        offset.y = ULPListPlacementRestingOffset(&placement, offset.y,
+            self.dragging || self.decelerating || self.tracking);
+    }
+    %orig(offset);
+}
+
+- (void)setContentOffset:(CGPoint)offset animated:(BOOL)animated {
+    ULPListPlacementState *state = objc_getAssociatedObject(self, &kULPOriginalListInsetKey);
+    if (gEnabled && state && !state.applying && self == gManagedList && ULPShouldShowPlayer()) {
+        ULPListPlacement placement = state.placement;
+        offset.y = ULPListPlacementRestingOffset(&placement, offset.y,
+            self.dragging || self.decelerating || self.tracking);
+    }
+    %orig(offset, animated);
+}
+
+- (void)setContentInset:(UIEdgeInsets)inset {
+    ULPListPlacementState *state = objc_getAssociatedObject(self, &kULPOriginalListInsetKey);
+    if (!gEnabled || !state || state.applying || !state.placement.active) {
+        %orig(inset);
+        return;
+    }
+    if (self != gManagedList || !ULPShouldShowPlayer()) {
+        ULPListPlacement old = state.placement;
+        CGFloat baseline = ULPListPlacementEnd(&old);
+        if (fabs(inset.top - state.placement.appliedTop) < .5) inset.top = baseline;
+        state.placement = old;
+        %orig(inset);
+        return;
+    }
+    ULPListPlacement placement = state.placement;
+    double base = placement.baseTop;
+    inset.top = ULPListPlacementObserve(&placement, inset.top);
+    state.placement = placement;
+    UIEdgeInsets current = self.contentInset;
+    if (fabs(current.top - inset.top) < .5 && fabs(current.left - inset.left) < .5 &&
+        fabs(current.bottom - inset.bottom) < .5 && fabs(current.right - inset.right) < .5) return;
+    BOOL atTop = fabs(self.contentOffset.y + current.top) < 2;
+    %orig(inset);
+    if (atTop && !self.dragging && !self.decelerating)
+        self.contentOffset = CGPointMake(self.contentOffset.x, -inset.top);
+    if (fabs(base - placement.baseTop) > .5)
+        ULPDiagnosticLog([NSString stringWithFormat:@"Player list system layout changed base=%.0f→%.0f applied=%.0f",
+            base, placement.baseTop, placement.appliedTop]);
+}
+
 - (void)layoutSubviews {
     %orig;
     if (gEnabled && gMediaView)
-        ULPManageListPosition(gMediaView, ULPShouldShowPlayer());
+        ULPManageListPosition(gMediaView, ULPShouldShowPlayer() && gPlayer.superview && gPlayer.bounds.size.height >= 80);
+    if (gEnabled) ULPSettleListPosition(self);
 }
 
 %end
 
 %hook PLPlatterCustomContentView
-
 - (void)layoutSubviews {
     %orig;
-    if (!gEnabled || self.bounds.size.height <= 0) return;
-    for (UIView *child in self.subviews) {
-        if (![child isKindOfClass:[ULPLockScreenView class]]) continue;
-        if (!CGRectEqualToRect(child.frame, self.bounds)) {
-            child.frame = self.bounds;
-            ULPDiagnosticLog([NSString stringWithFormat:
-                @"Native player host resized to %.0fx%.0f",
-                self.bounds.size.width, self.bounds.size.height]);
+    if (!gEnabled || gRepairingPlayer || !gCoverSheetView || ![self isDescendantOfView:gCoverSheetView]) return;
+    for (UIView *child in self.subviews)
+        if ([child isKindOfClass:NSClassFromString(@"CSMediaControlsView")]) {
+            ULPEnsurePlayerForMediaView(child); break;
         }
-        break;
-    }
 }
-
 %end
 
 %hook CSMediaControlsView
-
 - (void)didMoveToWindow {
     %orig;
-    if (gEnabled && self.window && ULPIsInsideCoverSheet(self))
-        [self setNeedsLayout];
+    if (!gEnabled) return;
+    if (self.window && gCoverSheetView && [self isDescendantOfView:gCoverSheetView]) {
+        ULPEnsurePlayerForMediaView(self);
+        [gNowPlaying requestRefresh];
+    } else if (self == gMediaView) {
+        ULPDiagnosticLog(@"Native media host left window; rechecking current host");
+        dispatch_async(dispatch_get_main_queue(), ^{ ULPCheckPlayer(YES); ULPRefreshPresentation(); });
+    }
 }
-
 - (void)layoutSubviews {
     %orig;
-    if (!gEnabled || !ULPIsInsideCoverSheet(self)) return;
-    UIView *host = self.superview;
-    if (!host || ![NSStringFromClass(host.class) isEqualToString:@"PLPlatterCustomContentView"])
-        return;
-    ULPLockScreenView *replacement = objc_getAssociatedObject(self, &kULPReplacementKey);
-    if (!replacement) {
-        replacement = [[ULPLockScreenView alloc] initWithFrame:host.bounds];
-        replacement.hidden = YES;
-        replacement.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-        replacement.commandHandler = ^(NSInteger command) { [gNowPlaying sendCommand:command]; };
-        replacement.openSourceHandler = ^{ ULPOpenNowPlayingSource(); };
-        replacement.artworkHandler = ^(UIImage *artwork) {
-            [gBackground setArtwork:artwork];
-            [gFixedBackground setRenderedArtwork:gBackground.renderedArtwork];
-            [gVisualizer setArtwork:artwork manualColor:gVisualManualColor];
-        };
-        objc_setAssociatedObject(self, &kULPReplacementKey, replacement,
-                                 OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-        [host addSubview:replacement];
-        gPlayer = replacement;
-        ULPDiagnosticLog([NSString stringWithFormat:
-            @"Native player replacement attached host=%.0fx%.0f media=%.0fx%.0f",
-            host.bounds.size.width, host.bounds.size.height,
-            self.bounds.size.width, self.bounds.size.height]);
-        PLPlatterView *platter = (PLPlatterView *)host.superview;
-        ULPDiagnosticLog([NSString stringWithFormat:
-            @"Platter class=%@ background=%@ overlay=%@ backgroundView=%@",
-            NSStringFromClass(platter.class),
-            [platter respondsToSelector:@selector(backgroundMaterialView)] ?
-                NSStringFromClass(platter.backgroundMaterialView.class) : @"none",
-            [platter respondsToSelector:@selector(mainOverlayView)] ?
-                NSStringFromClass(platter.mainOverlayView.class) : @"none",
-            [platter respondsToSelector:@selector(backgroundView)] ?
-                NSStringFromClass(platter.backgroundView.class) : @"none"]);
+    if (gEnabled) {
+        ULPEnsurePlayerForMediaView(self);
+        if (self == gMediaView) ULPRefreshPresentation();
     }
-    replacement.frame = host.bounds;
-    gMediaView = self;
-    gPlayer = replacement;
-    ULPRefreshPresentation();
 }
-
 %end
 
 static uint64_t ULPNowMs(void) {
@@ -589,6 +778,7 @@ static void ULPDiagnosticLog(NSString *message) {
         ULPLifecycleInit(&gLifecycle, 15000);
         ULPSignalInit(&gSignal);
         gVisualConfig = ULPLoadVisualPreferences();
+        ULPCachePreviewArtwork(nil);
         gVisualManualColor = ULPLoadVisualManualColor();
         gVolumeObserver = [ULPVolumeObserver new];
         gVolumeObserver.lastVolume = [AVAudioSession sharedInstance].outputVolume;
@@ -649,11 +839,11 @@ static void ULPDiagnosticLog(NSString *message) {
             gSignal.zoom.lastBand = gSignal.zoom.firstBand;
         gNowPlaying = [[ULPNowPlaying alloc] initWithHandler:^(ULPNowPlayingSnapshot *snapshot) {
             static BOOL lastArtwork;
+            int oldPID = gLastSnapshot.processID;
+            gLastSnapshot = snapshot;
             ULPPlaybackPresentation previous = gLifecycle.presentation;
             uint64_t now = ULPNowMs();
-            BOOL sessionPresent = snapshot.title.length > 0 || snapshot.artist.length > 0 ||
-                                  snapshot.artworkData.length > 0 || snapshot.artworkImage != nil ||
-                                  snapshot.processID > 0;
+            BOOL sessionPresent = snapshot.sessionPresent;
             if (sessionPresent) gSessionLastSeenMs = now;
             gHasNowPlaying = sessionPresent || (gSessionLastSeenMs && now - gSessionLastSeenMs < 3000);
             gLastProcessID = snapshot.processID;
@@ -671,9 +861,25 @@ static void ULPDiagnosticLog(NSString *message) {
                     snapshot.title.length > 0, hasArtwork, snapshot.duration]);
             }
             lastArtwork = hasArtwork;
+            if (![gArtworkTrack isEqualToString:snapshot.trackIdentifier ?: @""]) {
+                gArtworkTrack = snapshot.trackIdentifier ?: @"";
+                ULPReceiveArtwork(nil);
+            }
+            UIImage *artwork = snapshot.artworkImage;
+            if (!artwork && snapshot.artworkData.length)
+                artwork = [gRenderedArtworkData isEqualToData:snapshot.artworkData] ? gRenderedArtwork :
+                          [UIImage imageWithData:snapshot.artworkData];
+            if (artwork) {
+                ULPReceiveArtwork(artwork);
+                gRenderedArtworkData = snapshot.artworkData;
+                snapshot.artworkImage = gRenderedArtwork;
+            }
+            if (!snapshot.artworkImage && gRenderedArtwork) snapshot.artworkImage = gRenderedArtwork;
+            ULPCheckPlayer(oldPID != snapshot.processID);
             [gPlayer updateNowPlaying:snapshot];
             ULPRefreshPresentation();
         }];
+        gNowPlaying.diagnosticHandler = ^(NSString *message) { ULPDiagnosticLog(message); };
         [gNowPlaying start];
 
         // M1 device probe. UI and playback gating are added after audio validation.
@@ -693,9 +899,10 @@ static void ULPDiagnosticLog(NSString *message) {
             if (now - lastLog < 2.0) return;
             lastLog = now;
             ULPDiagnosticLog([NSString stringWithFormat:
-                @"MSH2 sampleRate=%.0f rms=%.3f peak=%.3f spectrum0=%.3f visual=%.3f zoom=%.3f status=0x%x",
+                @"MSH2 sampleRate=%.0f rms=%.3f peak=%.3f spectrum0=%.3f visual=%.3f zoom=%.3f status=0x%x bands8=%.3f bands16=%.3f bands32=%.3f bands48=%.3f bands63=%.3f",
                 frame.sampleRate, frame.rms, frame.peak, frame.spectrum[0],
-                gSignal.visualLevel, gSignal.zoomLevel, frame.status]);
+                gSignal.visualLevel, gSignal.zoomLevel, frame.status,
+                frame.spectrum[8], frame.spectrum[16], frame.spectrum[32], frame.spectrum[48], frame.spectrum[63]]);
         } statusHandler:^(NSString *message) {
             ULPDiagnosticLog(message);
         }];

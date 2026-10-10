@@ -2,6 +2,8 @@
 
 #import <QuartzCore/QuartzCore.h>
 #import <math.h>
+#import "ULPArtworkImage.h"
+#import "../Playback/ULPArtworkProvider.h"
 
 static void ULPFindArtworkInView(UIView *view, UIView *host, UIView *excluded,
                                  CGFloat width, CGFloat height,
@@ -42,7 +44,13 @@ static void ULPFindArtworkInView(UIView *view, UIView *host, UIView *excluded,
     CAShapeLayer *_progressTop;
     CAShapeLayer *_progressBottom;
     UIImage *_lastArtwork;
+    NSData *_lastArtworkData;
+    UIImage *_lastSystemArtwork;
+    UIImage *_rejectedSystemArtwork;
     NSString *_artworkTrackKey;
+    ULPArtworkProvider *_artworkProvider;
+    CGFloat _displayedProgress;
+    BOOL _lastPlaying;
 }
 @end
 
@@ -53,6 +61,22 @@ static void ULPFindArtworkInView(UIView *view, UIView *host, UIView *excluded,
     if (!self) return nil;
     self.backgroundColor = UIColor.clearColor;
     self.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+
+    _artworkProvider = [ULPArtworkProvider new];
+    __weak typeof(self) weakSelf = self;
+    _artworkProvider.imageHandler = ^(UIImage *image, NSString *track) {
+        typeof(self) strongSelf = weakSelf;
+        if (!strongSelf || ![strongSelf->_artworkTrackKey isEqualToString:track] ||
+            !ULPArtworkShouldUpgrade(image, strongSelf->_lastArtwork)) return;
+        strongSelf->_lastArtwork = image;
+        strongSelf->_lastArtworkData = nil;
+        strongSelf->_thumbnail.image = image;
+        if (strongSelf.artworkHandler) strongSelf.artworkHandler(image);
+    };
+    _artworkProvider.diagnosticHandler = ^(NSString *message) {
+        typeof(self) strongSelf = weakSelf;
+        if (strongSelf.diagnosticHandler) strongSelf.diagnosticHandler(message);
+    };
 
     _card = [[UIView alloc] initWithFrame:CGRectZero];
     _card.backgroundColor = [[UIColor colorWithRed:0.07 green:0.10 blue:0.11 alpha:1] colorWithAlphaComponent:0.86];
@@ -148,6 +172,8 @@ static void ULPFindArtworkInView(UIView *view, UIView *host, UIView *excluded,
 
 - (void)layoutSubviews {
     [super layoutSubviews];
+    [CATransaction begin];
+    [CATransaction setDisableActions:YES];
     CGFloat width = CGRectGetWidth(self.bounds);
     CGFloat height = CGRectGetHeight(self.bounds);
     CGFloat scale = MAX(0.7, width / 375.0);
@@ -193,42 +219,85 @@ static void ULPFindArtworkInView(UIView *view, UIView *host, UIView *excluded,
     _trackBottom.path = lower.CGPath;
     _progressTop.lineWidth = 2 * scale;
     _progressBottom.lineWidth = 2 * scale;
+    for (CAShapeLayer *layer in @[_trackTop, _trackBottom, _progressTop, _progressBottom])
+        layer.frame = _card.bounds;
+    [CATransaction commit];
+}
+
+- (UIImage *)currentArtwork { return _lastArtwork; }
+
+- (BOOL)repairComponents {
+    BOOL repaired = NO;
+    if (_card.superview != self) { [self addSubview:_card]; repaired = YES; }
+    for (UIView *view in @[_thumbnail, _title, _artist, _previous, _playPause, _next]) {
+        if (view.superview != _card) { [_card addSubview:view]; repaired = YES; }
+        if (view.hidden) { view.hidden = NO; repaired = YES; }
+    }
+    for (CAShapeLayer *layer in @[_trackTop, _trackBottom, _progressTop, _progressBottom])
+        if (layer.superlayer != _card.layer) { [_card.layer addSublayer:layer]; repaired = YES; }
+    if (_card.hidden) { _card.hidden = NO; repaired = YES; }
+    if (repaired) [self setNeedsLayout];
+    return repaired;
 }
 
 - (void)updateNowPlaying:(ULPNowPlayingSnapshot *)snapshot {
     _title.text = snapshot.title.length ? snapshot.title : @"Đang phát";
     _artist.text = snapshot.artist.length ? snapshot.artist : @"";
-    NSString *trackKey = [NSString stringWithFormat:@"%d|%@|%@|%.0f",
-                          snapshot.processID, snapshot.title ?: @"",
-                          snapshot.artist ?: @"", snapshot.duration];
-    if (![_artworkTrackKey isEqualToString:trackKey]) {
+    NSString *trackKey = snapshot.trackIdentifier ?: @"";
+    BOOL changedTrack = ![_artworkTrackKey isEqualToString:trackKey];
+    if (changedTrack) {
+        _rejectedSystemArtwork = _lastSystemArtwork;
         _artworkTrackKey = trackKey;
         _lastArtwork = nil;
+        _lastArtworkData = nil;
         _thumbnail.image = nil;
         if (self.artworkHandler) self.artworkHandler(nil);
     }
     UIImage *artwork = snapshot.artworkImage;
-    if (!artwork && snapshot.artworkData.length)
-        artwork = [UIImage imageWithData:snapshot.artworkData];
-    if (!artwork) artwork = [self findSystemArtwork];
-    if (artwork) {
+    if (artwork) _lastArtworkData = nil;
+    if (!artwork && snapshot.artworkData.length) {
+        artwork = [_lastArtworkData isEqualToData:snapshot.artworkData] ? _lastArtwork :
+                  [UIImage imageWithData:snapshot.artworkData];
+        if (artwork) _lastArtworkData = snapshot.artworkData;
+    }
+    UIImage *systemArtwork = [self findSystemArtwork];
+    if (!artwork && snapshot.sessionPresent && systemArtwork != _rejectedSystemArtwork) {
+        artwork = systemArtwork;
+        if (artwork && artwork != _lastArtwork) NSLog(@"[ULP] Artwork recovered from current native media host");
+    }
+    _lastSystemArtwork = systemArtwork;
+    if (artwork && ULPArtworkShouldUpgrade(artwork, _lastArtwork)) {
         if (artwork != _lastArtwork) {
             _lastArtwork = artwork;
             if (self.artworkHandler) self.artworkHandler(artwork);
         }
         _thumbnail.image = artwork;
     }
+    if (_lastArtwork) snapshot.artworkImage = _lastArtwork;
+    [_artworkProvider updateWithSnapshot:snapshot host:self.superview excludingView:self];
     [_playPause setTitle:snapshot.playing ? @"Ⅱ" : @"▶" forState:UIControlStateNormal];
     CGFloat progress = snapshot.duration > 0 ? snapshot.elapsed / snapshot.duration : 0;
     if (!isfinite(progress)) progress = 0;
     progress = MIN(1, MAX(0, progress));
     [CATransaction begin];
-    [CATransaction setAnimationDuration:0.9];
+    BOOL discontinuity = changedTrack || snapshot.playing != _lastPlaying ||
+        fabs(progress - _displayedProgress) > MAX(.04, snapshot.duration > 0 ? 2 / snapshot.duration : .04);
+    BOOL immediate = discontinuity || !snapshot.playing || progress < _displayedProgress;
+    if (immediate) {
+        // A seek/reset must also cancel the preceding interpolation, otherwise
+        // its presentation layer can continue drawing the old progress briefly.
+        [_progressTop removeAnimationForKey:@"strokeEnd"];
+        [_progressBottom removeAnimationForKey:@"strokeEnd"];
+    }
+    [CATransaction setDisableActions:immediate];
+    [CATransaction setAnimationDuration:MIN(.9, snapshot.duration > 0 ? snapshot.duration : .9)];
     [CATransaction setAnimationTimingFunction:
         [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionLinear]];
     _progressTop.strokeEnd = progress;
     _progressBottom.strokeEnd = progress;
     [CATransaction commit];
+    _displayedProgress = progress;
+    _lastPlaying = snapshot.playing;
 }
 
 - (UIImage *)findSystemArtwork {

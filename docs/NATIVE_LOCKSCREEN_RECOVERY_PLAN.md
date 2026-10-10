@@ -1,5 +1,11 @@
 # Kế hoạch sửa màn hình khóa sau 0.1.0-58
 
+## Triển khai phục hồi — 0.1.0-62
+
+Sau khi dùng lâu, người dùng tái hiện lỗi trên 0.1.0-61: phiên cũ về PID 0; phiên mới PID 64072 có tiêu đề và đang phát nhưng `artworkPresent=0`, MSH2 vẫn nhận âm thanh. Log đồng thời ghi inset tạm 207 được lưu rồi ép về 327, trong khi hệ thống đã chuyển sang 497. Log bản 61 không ghi parent của Player nên chưa chứng minh được view bị tháo hay host đổi.
+
+Đợt 62 triển khai kiểm tra/gắn lại Player trong media host hiện hành, refresh dữ liệu tuần tự với kiểm tra PID đầu/cuối, làm mới observer artwork theo identity và xử lý elapsed thiếu. Khoảng cách danh sách được điều chỉnh tại setter của inset, cập nhật base khi hệ thống đổi bố cục; không ép lại inset cũ trong mỗi layout. Xem `NATIVE_PLAYER_RECOVERY_CONTRACT.md` để biết giới hạn và nghiệm thu. Đồng hồ nhấp nháy vẫn thuộc danh sách theo dõi, ưu tiên thấp hơn Player/artwork/tiến trình.
+
 ## Nghiệm thu 0.1.0-59: không đạt, hoàn tác
 
 - Người dùng xác nhận đồng hồ thoắt hiện trước khi bị ẩn; Player nổi trên toàn màn hình và không còn cuộn theo media host; artwork sai. HUD quá lớn và hoạt ảnh không tự nhiên.

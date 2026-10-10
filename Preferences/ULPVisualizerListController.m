@@ -1,15 +1,19 @@
 #import "ULPVisualizerListController.h"
 #import "ULPVisualizerPreviewController.h"
 #import "ULPModePickerController.h"
+#import "ULPStylePickerController.h"
 #import "../Visualization/ULPVisualPreferences.h"
 #import <Preferences/PSSpecifier.h>
 #import <CoreFoundation/CoreFoundation.h>
+#import "../UI/ULPStyleColors.h"
 
 @interface ULPVisualizerListController () {
     ULPVisualizerPreviewController *_stickyPreview;
     UIView *_previewHeader;
     UIView *_previewSpacer;
     ULPVisualMode _loadedMode;
+    CGPoint _pickerReturnOffset;
+    BOOL _restorePickerOffset;
 }
 @end
 
@@ -57,6 +61,13 @@
         if (table && table.tableHeaderView != _previewSpacer)
             table.tableHeaderView = _previewSpacer;
         [self positionStickyPreview];
+        if (_restorePickerOffset) {
+            [self updateDependencies:YES];
+            [table layoutIfNeeded];
+            [table setContentOffset:_pickerReturnOffset animated:NO];
+            _restorePickerOffset = NO;
+        }
+        [_stickyPreview refreshVisualPreferences];
         [_stickyPreview startPreviewRendering];
     } @catch (NSException *exception) {
         [self recordPreviewIssue:[NSString stringWithFormat:@"viewWillAppear: %@ %@\n",
@@ -137,6 +148,8 @@
                 if ([property hasPrefix:@"ulp"])
                     [specifier setProperty:item[property] forKey:property];
             }
+            if (item[@"ulpColorPicker"] || item[@"ulpChoiceValues"])
+                specifier.detailControllerClass = ULPStylePickerController.class;
             NSString *key = item[@"key"];
             if (key) {
                 [specifier setProperty:key forKey:@"ulpOriginalKey"];
@@ -158,6 +171,18 @@
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     PSSpecifier *specifier = [self specifierAtIndexPath:indexPath];
+    if ([[specifier propertyForKey:@"ulpColorPicker"] boolValue] ||
+        [specifier propertyForKey:@"ulpChoiceValues"]) {
+        [tableView deselectRowAtIndexPath:indexPath animated:YES];
+        if ([specifier propertyForKey:@"enabled"] && ![[specifier propertyForKey:@"enabled"] boolValue]) return;
+        _pickerReturnOffset = tableView.contentOffset;
+        _restorePickerOffset = YES;
+        ULPStylePickerController *picker = [ULPStylePickerController new];
+        picker.specifier = specifier;
+        picker.parentController = self;
+        [self.navigationController pushViewController:picker animated:YES];
+        return;
+    }
     if ([specifier.identifier isEqualToString:@"ULPModePicker"]) {
         [tableView deselectRowAtIndexPath:indexPath animated:YES];
         [self openModes];
@@ -175,7 +200,10 @@
     if (!key) return [specifier propertyForKey:@"default"];
     CFPropertyListRef value = CFPreferencesCopyAppValue((__bridge CFStringRef)key,
         CFSTR("com.luoplayer.ultimatelockscreenplayer"));
-    return CFBridgingRelease(value) ?: [specifier propertyForKey:@"default"];
+    id result = CFBridgingRelease(value);
+    if (!result && [[specifier propertyForKey:@"ulpOriginalKey"] isEqualToString:@"ColourMode"])
+        return @(ULPLoadVisualPreferences().colorMode);
+    return result ?: [specifier propertyForKey:@"default"];
 }
 
 - (void)setPreferenceValue:(id)value specifier:(PSSpecifier *)specifier {
@@ -192,7 +220,17 @@
     CFPreferencesSetAppValue((__bridge CFStringRef)key, (__bridge CFPropertyListRef)value,
         CFSTR("com.luoplayer.ultimatelockscreenplayer"));
     CFPreferencesAppSynchronize(CFSTR("com.luoplayer.ultimatelockscreenplayer"));
+    BOOL isPicker = [specifier propertyForKey:@"ulpChoiceValues"] ||
+        [[specifier propertyForKey:@"ulpColorPicker"] boolValue];
+    CGPoint offset = [self settingsTable].contentOffset;
     [self updateDependencies:YES];
+    if (isPicker) {
+        [self reloadSpecifier:specifier animated:NO];
+        [[self settingsTable] layoutIfNeeded];
+        [[self settingsTable] setContentOffset:offset animated:NO];
+        _pickerReturnOffset = offset;
+        _restorePickerOffset = YES;
+    }
     [_stickyPreview refreshVisualPreferences];
 }
 
@@ -205,6 +243,8 @@
         for (PSSpecifier *source in _specifiers) {
             if (![[source propertyForKey:@"ulpOriginalKey"] isEqualToString:key]) continue;
             BOOL enabled = [[self readPreferenceValue:source] boolValue];
+            NSArray *allowed = [dependent propertyForKey:@"ulpEnabledValues"];
+            if (allowed) enabled = [allowed containsObject:[self readPreferenceValue:source]];
             if (inverse) enabled = !enabled;
             if (![[dependent propertyForKey:@"enabled"] isEqual:@(enabled)]) {
                 [dependent setProperty:@(enabled) forKey:@"enabled"];

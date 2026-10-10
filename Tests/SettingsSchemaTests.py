@@ -13,14 +13,14 @@ assert mode_link['cell'] == 'PSLinkCell', 'Modes must appear as navigation'
 loader = (root / 'Visualization/ULPVisualPreferences.m').read_text()
 read_keys = set(re.findall(r'(?:NUMBER|BOOLEAN)\(\w+, "([^"]+)"\)', loader))
 read_keys.update(re.findall(r'ULP(?:Number|Bool|Byte)\(values, @"([^"]+)"', loader))
-read_keys.add('VisualColor')
+read_keys.update(re.findall(r'ULPColor\(values, @"([^"]+)"', loader))
 for resource in ('Visualizer', 'Root'):
     resource_items = plistlib.loads((root / f'Preferences/Resources/{resource}.plist').read_bytes())['items']
     for item in resource_items:
         if item['cell'] == 'PSButtonCell':
             assert item.get('buttonAction'), f'Missing PSButtonCell callback: {item}'
             assert 'action' not in item, f'Generic action does not dispatch button taps: {item}'
-for mode in range(10):
+for mode in range(12):
     visible = [item for item in items if 'ulpModes' not in item or mode in item['ulpModes']]
     keys = [item['key'] for item in visible if 'key' in item]
     assert len(keys) == len(set(keys)), f'Duplicate setting in mode {mode}'
@@ -33,8 +33,17 @@ for mode in range(10):
         if item['cell'] == 'PSSliderCell':
             assert item['min'] <= item['default'] <= item['max'], item
         if item['cell'] == 'PSLinkListCell':
+            assert item.get('detail') == 'ULPStylePickerController', 'Choice page needs an explicit controller'
+            assert item['ulpChoiceTitles'] == item['validTitles'], item
+            assert item['ulpChoiceValues'] == item['validValues'], item
             assert len(item['validTitles']) == len(item['validValues']), item
             assert item['default'] in item['validValues'], item
+        if 'ulpEnabledValues' in item:
+            source = next(x for x in visible if x.get('key') == item['ulpDependsOn'])
+            assert set(item['ulpEnabledValues']) <= set(source['validValues'])
+        if item.get('ulpColorPicker'):
+            assert item.get('detail') == 'ULPStylePickerController', 'Colour page needs an explicit controller'
+            assert item['cellClass'] == 'ULPColorCell' and item['cell'] == 'PSLinkCell'
     assert 'VisualPreset' not in keys, 'Legacy presets must not override the chosen mode'
 bar = [item for item in items if 'ulpModes' not in item or 1 in item['ulpModes']]
 bar_by_key = {item['key']: item for item in bar if 'key' in item}
@@ -42,9 +51,14 @@ assert bar_by_key['VisualPoints']['default'] == 32
 assert bar_by_key['VisualPoints'].get('ulpInteger'), 'Bar count must save an integer'
 assert bar_by_key['BarSpacing']['default'] == .25
 assert bar_by_key['BarHeight']['default'] == 1
+assert bar_by_key['ColourMode']['validValues'] == [0,1,2]
+assert bar_by_key['VisualColor']['ulpEnabledValues'] == [0,1]
+assert bar_by_key['VisualColor2']['ulpEnabledValues'] == [1]
+assert bar_by_key['GradientAngle']['ulpEnabledValues'] == [1]
+assert bar_by_key['ArtworkBackgroundType']['default'] == 2
+assert bar_by_key['ArtworkBackgroundType']['ulpDependsOn'] == 'ArtworkBackground'
 assert 'Rows' not in bar_by_key and 'DotSize' not in bar_by_key
 assert not any(item.get('label') == 'SHAPE' for item in bar)
-print('SettingsSchemaTests OK: 10 mode configurations')
 
 for mode in (4, 5, 9):
     visible = [item for item in items if 'ulpModes' not in item or mode in item['ulpModes']]
@@ -65,3 +79,30 @@ assert {'InnerRadius', 'RadialBarLength', 'RadialBarThickness', 'RotationSpeed',
         'RadialSymmetry', 'GrowInward', 'RoundedCaps', 'ShowInnerRing',
         'RingOpacity', 'PeakCaps', 'PeakCapsType', 'HideVisualizerButPeakCaps'} <= spectro_keys
 assert 'VisualAnimationScale' not in spectro_keys and 'VisualSymmetry' not in spectro_keys
+
+circular = [item for item in items if 'ulpModes' not in item or 10 in item['ulpModes']]
+circular_by_key = {item['key']: item for item in circular if 'key' in item}
+assert {'VisualPoints', 'InnerRadius', 'WaveAmplitude', 'Thickness', 'RotationSpeed',
+        'SpectrumFill', 'FillOpacity', 'WaveSmoothing'} <= circular_by_key.keys()
+assert circular_by_key['SpectrumFill']['label'] == 'Fill ring'
+assert circular_by_key['FillOpacity']['ulpDependsOn'] == 'SpectrumFill'
+assert circular_by_key['VisualPoints']['default'] == 64
+assert circular_by_key['VisualPoints']['ulpInteger']
+assert circular_by_key['Thickness']['default'] == 3
+assert circular_by_key['WaveSmoothing']['default'] == 0
+assert not {'VisualSymmetry', 'VisualAnimationScale', 'RadialSymmetry', 'PeakCaps',
+            'VisualFirstBand', 'VisualLastBand', 'CentreGap', 'SmoothCurve'} & circular_by_key.keys()
+smooth = [item for item in items if 'ulpModes' not in item or 11 in item['ulpModes']]
+smooth_by_key = {item['key']: item for item in smooth if 'key' in item}
+assert {'VisualPoints', 'RadialSymmetry', 'SmoothSpectroSize', 'SmoothSpectroReactivity',
+        'Thickness', 'RotationSpeed', 'FrequencyRange', 'SpectrumFill', 'FillOpacity'} <= smooth_by_key.keys()
+assert smooth_by_key['VisualPoints']['ulpInteger'] and smooth_by_key['RadialSymmetry']['ulpInteger']
+assert smooth_by_key['SmoothSpectroSize']['default'] == .42
+assert smooth_by_key['SmoothSpectroReactivity']['default'] == .5
+assert smooth_by_key['Thickness']['default'] == 3
+assert smooth_by_key['FillOpacity']['ulpDependsOn'] == 'SpectrumFill'
+assert not {'WaveSmoothing', 'InnerRadius', 'VisualSymmetry', 'VisualAnimationScale',
+            'RadialBarLength', 'RadialBarThickness', 'PeakCaps', 'CentreGap'} & smooth_by_key.keys()
+picker = (root / 'Preferences/ULPModePickerController.m').read_text()
+assert '@(ULPVisualModeSmoothSpectro)' in picker
+print('SettingsSchemaTests OK: 12 mode configurations')

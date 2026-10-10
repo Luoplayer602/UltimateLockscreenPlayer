@@ -4,8 +4,12 @@ Tests/MSH2ProtocolTests
 Tests/LifecycleTests
 Tests/SignalTests
 Tests/ProgressClockTests
+Tests/ListPlacementTests
 Tests/VisualConfigTests
 Tests/WaveformTests
+Tests/PreviewSpectrumTests
+Tests/StyleTests
+Tests/ArtworkRequestTests
 *.deb
 *.dylib
 *.o

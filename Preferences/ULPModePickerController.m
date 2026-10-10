@@ -11,6 +11,8 @@ NSString *ULPModeTitle(ULPVisualMode mode) {
         case ULPVisualModeMirror: return @"Mirror";
         case ULPVisualModeSiri: return @"Siri";
         case ULPVisualModeRadial: return @"Spectro";
+        case ULPVisualModeCircularWave: return @"Circular waveform";
+        case ULPVisualModeSmoothSpectro: return @"Smooth spectro";
         case ULPVisualModeDot: return @"Dotted orbit";
         default: return @"Circle classic";
     }
@@ -30,7 +32,8 @@ NSString *ULPModeTitle(ULPVisualMode mode) {
     self.title = @"Modes";
     _modes = @[@[@(ULPVisualModeBar), @(ULPVisualModeEqualizer), @(ULPVisualModeLine), @(ULPVisualModeDotMatrix)],
                @[@(ULPVisualModeWave), @(ULPVisualModeMirror), @(ULPVisualModeSiri)],
-               @[@(ULPVisualModeCircle), @(ULPVisualModeRadial), @(ULPVisualModeDot)]];
+               @[@(ULPVisualModeCircle), @(ULPVisualModeRadial), @(ULPVisualModeCircularWave),
+                 @(ULPVisualModeSmoothSpectro), @(ULPVisualModeDot)]];
     _selected = ULPLoadVisualPreferences().mode;
 }
 

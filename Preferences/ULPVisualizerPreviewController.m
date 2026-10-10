@@ -9,6 +9,8 @@
 #import "../UI/ULPVisualizerView.h"
 #import "../Visualization/ULPVisualPreferences.h"
 #import "../Visualization/ULPSignal.h"
+#import "../Audio/ULPPreviewSpectrum.h"
+#import "../UI/ULPBackgroundView.h"
 
 typedef void (*ULPGetPlaying)(dispatch_queue_t, void (^)(Boolean));
 typedef void (*ULPGetInfo)(dispatch_queue_t, void (^)(CFDictionaryRef));
@@ -16,7 +18,9 @@ typedef Boolean (*ULPSendCommand)(NSInteger, NSDictionary *);
 
 @interface ULPVisualizerPreviewController () {
     UIView *_previewSurface;
-    CAGradientLayer *_previewGradient;
+    ULPBackgroundView *_previewBackground;
+    UIImage *_previewArtwork;
+    NSData *_previewArtworkData;
     UILabel *_compactCaption;
     ULPVisualizerView *_visualizer;
     UIButton *_playButton;
@@ -26,6 +30,7 @@ typedef Boolean (*ULPSendCommand)(NSInteger, NSDictionary *);
     AVAudioPCMBuffer *_analysisBuffer;
     CADisplayLink *_displayLink;
     CFTimeInterval _lastPreferenceRead;
+    CFTimeInterval _lastArtworkRead;
     ULPVisualConfig _config;
     ULPSignalState _signal;
     void *_mediaRemote;
@@ -53,12 +58,8 @@ typedef Boolean (*ULPSendCommand)(NSInteger, NSDictionary *);
     _previewSurface.clipsToBounds = YES;
     [self.view addSubview:_previewSurface];
 
-    _previewGradient = [CAGradientLayer layer];
-    _previewGradient.colors = @[(id)[UIColor colorWithRed:0.16 green:0.20 blue:0.29 alpha:1].CGColor,
-                                (id)[UIColor colorWithRed:0.10 green:0.11 blue:0.17 alpha:1].CGColor];
-    _previewGradient.startPoint = CGPointMake(0, 0);
-    _previewGradient.endPoint = CGPointMake(1, 1);
-    [_previewSurface.layer addSublayer:_previewGradient];
+    _previewBackground = [[ULPBackgroundView alloc] initWithFrame:_previewSurface.bounds];
+    [_previewSurface addSubview:_previewBackground];
 
     _visualizer = [[ULPVisualizerView alloc] initWithFrame:CGRectZero];
     [_previewSurface addSubview:_visualizer];
@@ -126,7 +127,7 @@ typedef Boolean (*ULPSendCommand)(NSInteger, NSDictionary *);
     CGFloat height = CGRectGetHeight(self.view.bounds);
     if (self.compact) {
         _previewSurface.frame = CGRectMake(0, 0, width, height);
-        _previewGradient.frame = _previewSurface.bounds;
+        _previewBackground.frame = _previewSurface.bounds;
         _previewSurface.layer.cornerRadius = 16;
         _visualizer.frame = _previewSurface.bounds;
         _compactCaption.frame = CGRectMake(17, 13, width - 34, 16);
@@ -139,7 +140,7 @@ typedef Boolean (*ULPSendCommand)(NSInteger, NSDictionary *);
     CGFloat top = MAX(18, self.view.safeAreaInsets.top + 12);
     CGFloat panelHeight = MIN(410, MAX(250, height * 0.66));
     _previewSurface.frame = CGRectMake(16, top, width - 32, panelHeight);
-    _previewGradient.frame = _previewSurface.bounds;
+    _previewBackground.frame = _previewSurface.bounds;
     _visualizer.frame = _previewSurface.bounds;
     _playButton.frame = CGRectMake((width - 32 - 60) / 2,
                                    panelHeight * 0.42 - 30, 60, 60);
@@ -185,10 +186,31 @@ typedef Boolean (*ULPSendCommand)(NSInteger, NSDictionary *);
     _signal.zoom.firstBand = _config.zoomFirstBand;
     _signal.zoom.lastBand = _config.zoomLastBand;
     _visualizer.visualConfig = _config;
-    [_visualizer setArtwork:nil manualColor:ULPLoadVisualManualColor()];
+    _previewBackground.visualConfig = _config;
+    [_visualizer setArtwork:_previewArtwork manualColor:ULPLoadVisualManualColor()];
     _visualizer.hidden = !_config.enabled;
     _displayLink.preferredFramesPerSecond = _config.framesPerSecond;
     _lastPreferenceRead = CACurrentMediaTime();
+    // Capture real artwork before Preview pauses the external player. Keep it
+    // through sample playback so changing background styles is reviewable.
+    if (_getInfo && !_player.isPlaying && !_starting && _lastPreferenceRead - _lastArtworkRead >= 1) {
+        _lastArtworkRead = _lastPreferenceRead;
+        __weak typeof(self) weakSelf = self;
+        _getInfo(dispatch_get_main_queue(), ^(CFDictionaryRef raw) {
+            __strong typeof(weakSelf) self = weakSelf;
+            if (!self) return;
+            CFStringRef *key = (CFStringRef *)dlsym(self->_mediaRemote, "kMRMediaRemoteNowPlayingInfoArtworkData");
+            NSDictionary *info = (__bridge NSDictionary *)raw;
+            id value = key && *key ? info[(__bridge NSString *)*key] : nil;
+            NSData *data = [value isKindOfClass:NSData.class] ? value : nil;
+            if (!data.length) data = [NSData dataWithContentsOfFile:@"/var/mobile/Library/Caches/ULP/preview-artwork.jpg"];
+            if ((data == self->_previewArtworkData) || [data isEqualToData:self->_previewArtworkData]) return;
+            self->_previewArtworkData = data;
+            self->_previewArtwork = data.length ? [UIImage imageWithData:data] : nil;
+            [self->_previewBackground setArtwork:self->_previewArtwork];
+            [self->_visualizer setArtwork:self->_previewArtwork manualColor:ULPLoadVisualManualColor()];
+        });
+    }
 }
 
 - (NSString *)titleFromInfo:(CFDictionaryRef)rawInfo {
@@ -317,22 +339,14 @@ typedef Boolean (*ULPSendCommand)(NSInteger, NSDictionary *);
     float total = 0;
     for (NSUInteger i = 0; i < sampleCount; ++i) total += samples[i] * samples[i];
     frame.rms = sqrtf(total / sampleCount);
+    ULPPreviewSpectrum(samples, sampleCount, frame.sampleRate, frame.spectrum);
     for (NSUInteger band = 0; band < 64; ++band) {
-        float frequency = 45.0f * powf(1.1f, band);
-        float coefficient = 2 * cosf(2 * (float)M_PI * frequency / frame.sampleRate);
-        float first = 0, second = 0;
-        for (NSUInteger i = 0; i < sampleCount; ++i) {
-            float next = samples[i] + coefficient * first - second;
-            second = first;
-            first = next;
-        }
-        float power = MAX(0, first * first + second * second - coefficient * first * second);
-        frame.spectrum[band] = MIN(1, sqrtf(power) * 24 / sampleCount);
         // Same 1024-frame window and stride as AudioSnapshotServer2.
         frame.waveform[band] = samples[band * 1024 / 64];
     }
     ULPSignalProcess(&_signal, &frame);
     [_visualizer updateAudio:frame zoomLevel:_signal.zoomLevel];
+    [_previewBackground setZoomLevel:_signal.zoomLevel];
 }
 
 @end

@@ -1,0 +1,9 @@
+Package: com.luoplayer.ulpartworkprobe
+Name: ULP Artwork Probe
+Version: 0.1.0
+Architecture: iphoneos-arm64
+Description: Temporary read-only artwork dimensions and provider diagnostics for iOS 15.
+Maintainer: luoplayer
+Author: luoplayer
+Section: Development
+Depends: mobilesubstrate, firmware (>= 15.0)

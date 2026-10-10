@@ -56,3 +56,39 @@ Người dùng xác nhận 0.1.0-60 hoạt động ổn trong lần nghiệm thu
 Lát triển khai tiếp theo là **Circular waveform**. Dùng cùng dữ liệu waveform có dấu và cùng `ULPVisualizerView` ở Preview/màn hình khóa. Bổ sung `Detail`, `Inner radius`, `Amplitude`, `Thickness`, `Rotation speed`, `Fill ring`, `Fill opacity` với khóa riêng của mode, giá trị mặc định và giới hạn rõ ràng; Settings chỉ hiện các điều khiển có tác dụng. Cấu hình của các mode hiện tại phải được giữ nguyên khi đổi qua lại và sau Apply. Kiểm tra hình vòng ở đoạn yên lặng, âm lượng lớn, đổi bài và Pause; đo FPS trên iPhone 6s trước khi nghiệm thu.
 
 Sau khi Circular waveform đạt, triển khai **Smooth spectro** từ dữ liệu spectrum. Các nhóm dùng chung như màu, nền, Trail, cover và Beat motion tiếp tục theo lát nhỏ sau hai mode tròn này. Lyrics native vẫn tạm dừng theo quyết định đã chốt.
+
+## Triển khai — 0.1.0-61
+
+Mốc mã nguồn 0.1.0-60: commit `14fe988116ca29e91431b9abfa72b81dd1bce721`; giữ gói 0.1.0-60 trong `packages/` để quay lại. Circular waveform là mode 10, dùng PCM có dấu và khóa riêng `v1.circular-waveform.*`. Vòng nối mượt qua điểm cuối/đầu; Fill ring tô giữa đường sóng với vòng cơ sở và để tâm trong suốt. Đã thêm đủ bảy điều khiển riêng cùng Waveform smoothing ở Audio & performance; Preview và màn hình khóa cùng dùng renderer native này. Build arm64/rootless và bộ Tests đạt; hình ảnh, FPS và các chuỗi khóa/mở màn hình cần nghiệm thu trên iPhone. Xem `NATIVE_CIRCULAR_WAVEFORM_CONTRACT.md`.
+
+## Ưu tiên phục hồi — 0.1.0-62
+
+Người dùng báo lỗi Player/artwork sau khi đóng/mở ứng dụng nhạc, vị trí và tiến trình không ổn định khi dùng lâu. Ưu tiên sửa các lỗi này trước Smooth spectro; xem `NATIVE_PLAYER_RECOVERY_CONTRACT.md`. Đã có log tái hiện bản 61 xác nhận phiên mới vẫn phát nhưng artwork thiếu, và padding danh sách bám nhầm base tạm. Đồng hồ nhấp nháy được giữ trong danh sách theo dõi.
+
+## Smooth spectro và vị trí sau vuốt — 0.1.0-63
+
+Người dùng tạm nghiệm thu phục hồi Player/artwork của 62 sau nhiều lần đóng/mở YouTube Music. Triển khai Smooth spectro (mode 11) và kiểm tra offset nghỉ khi kết thúc chuyển cảnh, giữ Player trong native host. Đủ 9 điều khiển riêng, Preview và màn hình khóa dùng chung renderer. Xem `NATIVE_SMOOTH_SPECTRO_CONTRACT.md` cho ánh xạ, giới hạn và nghiệm thu. Sau khi bản này đạt, nhóm tiếp theo là màu/nền dùng chung; tiếp tục theo dõi phục hồi, vị trí, tiến trình và đồng hồ.
+
+## Preview làm chuẩn, Colour và Background — 0.1.0-64
+
+Người dùng chốt giữ phản ứng của Preview, chỉnh phần thật về gần Preview. ULP 64 và server 2.1.1+ulp2 dùng cùng DSP tách từ Preview cũ. Hoàn thiện Colour Solid/Gradient/Artwork, Background Colour/Gradient + ba kiểu artwork, color picker và dependencies. Xem `NATIVE_COLOUR_BACKGROUND_DSP_CONTRACT.md`. Nhịp đập thật và hiệu năng còn cần nghiệm thu; sau khi đạt mới triển khai Trail, cover và toàn bộ Beat motion.
+
+## Sửa trang chọn Colour/Background — 0.1.0-65
+
+Người dùng tạm nghiệm thu phản ứng DSP của 64; giữ nguyên DSP và server 2.1.1+ulp2. Các trang Colour, Colour mode và Artwork background type bị đen trên máy thật. Bản 65 gán controller riêng cho tất cả các enum và colour links của Visualizer, thay vì để Preferences tự chọn trang con. Controller hỗ trợ cả đường điều hướng qua `detail` và thao tác table trực tiếp. Các enum có dấu chọn; màu có preview swatch, RGB, palette và mã hex, lưu qua setter của source specifier để giữ schema theo mode và cập nhật dependencies/preview. Khi quay lại, cập nhật hàng và giữ offset cuộn. Build và bộ Tests đạt; còn chờ nghiệm thu UIKit trên iPhone.
+
+Gói: `com.luoplayer.ultimatelockscreenplayer_0.1.0-65_iphoneos-arm64.deb`, 21218740 bytes, SHA-256 `2681edc415c0828e4c0b91cfa4804afbdd517ff4cca9a6cdf6632d2371d2c172`.
+
+Nghiệm thu: mở Colour mode chọn Solid/Gradient/Artwork, kiểm tra Color 1/2 và Gradient angle bật/tắt đúng. Mở Non-artwork songs chọn Colour/Gradient; đổi hai màu bằng RGB/palette/hex. Mở Artwork background type và thử cả ba kiểu với bài có artwork. Quay lại đúng vị trí cuộn, preview phản ánh thay đổi, thoát/mở lại Settings và đổi mode giữ cấu hình, Apply cập nhật màn hình khóa. Thử thêm các enum cũ như Grow from/Peak caps type để tránh hồi quy. Nếu có lỗi cài lại ULP 64; không cần thay server.
+
+## Artwork lớn và tỷ lệ nền — 0.1.0-66
+
+Người dùng nghiệm thu các tính năng của 65, nhưng nền ảnh rõ bị pixel do nguồn 200 px. Probe v4 đã lấy riêng được UIImage 750×750 từ catalog lockscreen; một lần nil được phục hồi bằng lần thử sau. Tích hợp catalog riêng, không đổi catalog của hệ thống, giữ ảnh chất lượng cao theo bài và loại callback cũ. Center dim image giữ 1× theo pixel màn hình, có blur phía sau; Scaled image phủ viewport thực với zoom bổ sung tối đa 2%, không phủ theo overscan cao hơn 30%. Xem `NATIVE_ARTWORK_QUALITY_CONTRACT.md` cho bằng chứng, giới hạn và nghiệm thu. Build và Tests đạt; còn cần nghiệm thu bản 66 trên iPhone. DSP 64/server 2.1.1+ulp2 giữ nguyên. Sau khi artwork đạt, tiếp tục Trail, cover và toàn bộ Beat motion; Lyrics native vẫn tạm dừng.
+
+## Khôi phục zoom nền và sửa tiến trình — 0.1.0-67
+
+Người dùng xác nhận ảnh mới của 66 đã đạt. Center dim image + blur chuyển sang ảnh giữa rộng 83% viewport, zoom lên gần 90%; cả Center và Scaled dùng lại biên độ audio zoom 8% cùng smoothing cũ. Scaled vẫn phủ viewport thực. Sửa tiến trình khi nhấn Previous phát lại cùng bài: nhận timestamp mới ngay cả khi elapsed nguồn vẫn bằng 0, huỷ animation strokeEnd cũ khi reset/tua lùi. Thêm kiểm tra cùng bài reset timestamp, lặp bài, pause/resume/tua/đổi bài; bổ sung timestamp trong log. Xem hai hợp đồng artwork và player recovery. Build/Tests đạt; chờ nghiệm thu iPhone cho zoom và Previous một lần/hai lần. Nguồn ảnh lớn và DSP giữ nguyên.
+
+## Hoàn thiện giao diện và chuẩn bị pre-release — 0.1.0-68
+
+Người dùng đã nghiệm thu 67. Bo góc liên tục ảnh giữa Center dim image + blur, bán kính khoảng 20 pt trên màn 375 pt, giữ kích thước/zoom/nguồn ảnh đã đạt. Viết lại README gồm giới thiệu, cấu trúc, cài DEB/build cả server mod, demo-ui và credits. Release notes `PRE_RELEASE_NOTES.md` là đề xuất `0.2.0-beta.1`, chưa đổi phiên bản/phát hành/tag. README và release notes không đề cập Lyrics theo yêu cầu người dùng. Sau khi bo góc được nghiệm thu có thể chốt gói pre-release, tiếp tục theo dõi độ ổn định lâu dài.

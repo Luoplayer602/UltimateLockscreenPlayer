@@ -11,14 +11,19 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic) double elapsed;
 @property (nonatomic) BOOL playing;
 @property (nonatomic) int processID;
+@property (nonatomic, copy, nullable) NSString *trackIdentifier;
+@property (nonatomic) double playbackRate;
+@property (nonatomic) BOOL sessionPresent;
 @end
 
 typedef void (^ULPNowPlayingHandler)(ULPNowPlayingSnapshot *snapshot);
 
 @interface ULPNowPlaying : NSObject
+@property (nonatomic, copy, nullable) void (^diagnosticHandler)(NSString *message);
 - (instancetype)initWithHandler:(ULPNowPlayingHandler)handler;
 - (void)start;
 - (void)stop;
+- (void)requestRefresh;
 - (BOOL)sendCommand:(NSInteger)command;
 @end
 

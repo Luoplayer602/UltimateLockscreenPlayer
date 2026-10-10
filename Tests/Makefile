@@ -3,12 +3,17 @@ CFLAGS ?= -O2 -Wall -Wextra -Werror -std=c11
 
 .PHONY: test clean
 
-test: MSH2ProtocolTests LifecycleTests SignalTests VisualConfigTests WaveformTests
+test: MSH2ProtocolTests LifecycleTests SignalTests VisualConfigTests WaveformTests ProgressClockTests ListPlacementTests PreviewSpectrumTests StyleTests ArtworkRequestTests
 	./MSH2ProtocolTests
 	./LifecycleTests
 	./SignalTests
 	./VisualConfigTests
 	./WaveformTests
+	./ProgressClockTests
+	./ListPlacementTests
+	./PreviewSpectrumTests
+	./StyleTests
+	./ArtworkRequestTests
 	python3 SettingsSchemaTests.py
 
 MSH2ProtocolTests: MSH2ProtocolTests.c ../Audio/MSH2Protocol.c ../Audio/MSH2Protocol.h
@@ -26,5 +31,20 @@ VisualConfigTests: VisualConfigTests.c ../Visualization/ULPVisualConfig.c ../Vis
 WaveformTests: WaveformTests.c ../Visualization/ULPWaveform.c ../Visualization/ULPWaveform.h
 	$(CC) $(CFLAGS) WaveformTests.c ../Visualization/ULPWaveform.c -lm -o $@
 
+ProgressClockTests: ProgressClockTests.c ../Playback/ULPProgressClock.c ../Playback/ULPProgressClock.h
+	$(CC) $(CFLAGS) ProgressClockTests.c ../Playback/ULPProgressClock.c -lm -o $@
+
+ListPlacementTests: ListPlacementTests.c ../Playback/ULPListPlacement.c ../Playback/ULPListPlacement.h
+	$(CC) $(CFLAGS) ListPlacementTests.c ../Playback/ULPListPlacement.c -lm -o $@
+
 clean:
-	rm -f MSH2ProtocolTests LifecycleTests SignalTests VisualConfigTests WaveformTests
+	rm -f MSH2ProtocolTests LifecycleTests SignalTests VisualConfigTests WaveformTests ProgressClockTests ListPlacementTests PreviewSpectrumTests StyleTests ArtworkRequestTests
+
+PreviewSpectrumTests: PreviewSpectrumTests.c ../Audio/ULPPreviewSpectrum.c ../Audio/ULPPreviewSpectrum.h
+	$(CC) $(CFLAGS) PreviewSpectrumTests.c ../Audio/ULPPreviewSpectrum.c -lm -o $@
+
+StyleTests: StyleTests.c ../Visualization/ULPStyle.c ../Visualization/ULPStyle.h
+	$(CC) $(CFLAGS) StyleTests.c ../Visualization/ULPStyle.c -lm -o $@
+
+ArtworkRequestTests: ArtworkRequestTests.c ../Playback/ULPArtworkRequest.c ../Playback/ULPArtworkRequest.h
+	$(CC) $(CFLAGS) ArtworkRequestTests.c ../Playback/ULPArtworkRequest.c -lm -o $@
