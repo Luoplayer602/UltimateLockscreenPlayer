@@ -162,6 +162,13 @@ ULPVisualConfig ULPLoadVisualPreferences(void) {
     NUMBER(coverOpacity, "CoverOpacity"); NUMBER(coverOutlineThickness, "CoverOutlineThickness");
     NUMBER(coverOutlineOpacity, "CoverOutlineOpacity"); NUMBER(coverGlow, "CoverGlow");
     NUMBER(coverSpin, "CoverSpin");
+    config.visualReactType = (ULPReactType)ULPByte(values, @"VisualReactType", config.visualReactType, 255);
+    config.coverReactType = (ULPReactType)ULPByte(values, @"CoverReactType", config.coverReactType, 255);
+    config.beatMotion = (ULPBeatMotionType)ULPByte(values, @"BeatMotion", config.beatMotion, 255);
+    NUMBER(coverReaction, "CoverReaction"); NUMBER(beatSensitivity, "BeatSensitivity");
+    NUMBER(beatInterval, "BeatInterval"); NUMBER(beatRelease, "BeatRelease");
+    NUMBER(coverRumble, "CoverRumble"); NUMBER(coverDrift, "CoverDrift");
+    NUMBER(coverGlowPulse, "CoverGlowPulse");
     config.coverOutlineColor = ULPColor(values, @"CoverOutlineColor", config.coverOutlineColor);
 #undef NUMBER
 #undef BOOLEAN

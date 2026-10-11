@@ -47,6 +47,12 @@ typedef enum {
     ULPCoverModeOff = 2,
 } ULPCoverMode;
 
+typedef enum { ULPReactRaw = 0, ULPReactBeat = 1 } ULPReactType;
+typedef enum {
+    ULPBeatMotionSwell = 0, ULPBeatMotionFlash = 1, ULPBeatMotionShake = 2,
+    ULPBeatMotionSpin = 3, ULPBeatMotionBounce = 4, ULPBeatMotionWobble = 5,
+} ULPBeatMotionType;
+
 typedef struct {
     bool enabled;
     ULPVisualMode mode;
@@ -123,6 +129,11 @@ typedef struct {
     float coverOutlineThickness, coverOutlineOpacity, coverGlow;
     uint32_t coverOutlineColor;
     float coverSpin; // Degrees per second; image/logo only, while playing.
+    ULPReactType visualReactType, coverReactType;
+    ULPBeatMotionType beatMotion;
+    float coverReaction; // 0 preserves the static Cover from version 70.
+    float beatSensitivity, beatInterval, beatRelease;
+    float coverRumble, coverDrift, coverGlowPulse;
 } ULPVisualConfig;
 
 ULPVisualConfig ULPVisualConfigDefault(void);
@@ -131,6 +142,8 @@ ULPVisualConfig ULPVisualConfigNormalize(ULPVisualConfig config);
 ULPVisualMode ULPVisualModeForPreset(ULPVisualPreset preset);
 const char *ULPVisualModeID(ULPVisualMode mode);
 bool ULPVisualIsSpectrum(ULPVisualMode mode);
+// Drawing budget only; incoming audio/Beat analysis retains its cadence.
+uint8_t ULPVisualDrawingFPS(uint8_t requested, bool captured);
 float ULPSpectrumFrequencyPhase(float phase, bool mirror, bool reverse);
 float ULPSpectrumHeight(float level, float phase, ULPVisualConfig config);
 float ULPRadialFrequencyPhase(float turn, unsigned segments);

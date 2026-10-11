@@ -7,6 +7,12 @@ static float ULPBound(float value, float lower, float upper) {
     return fminf(upper, fmaxf(lower, value));
 }
 
+uint8_t ULPVisualDrawingFPS(uint8_t requested, bool captured) {
+    if (requested < 15) requested = 15;
+    if (requested > 60) requested = 60;
+    return captured && requested > 30 ? 30 : requested;
+}
+
 ULPVisualConfig ULPVisualConfigDefault(void) {
     return (ULPVisualConfig){
         .enabled = true,
@@ -41,6 +47,9 @@ ULPVisualConfig ULPVisualConfigDefault(void) {
         .coverMode = ULPCoverModeLogo, .coverSize = .44f, .coverOpacity = 1,
         .coverOutlineThickness = 3, .coverOutlineOpacity = .4f,
         .coverOutlineColor = 0xFFFFFF, .coverGlow = .2f,
+        .visualReactType = ULPReactRaw, .coverReactType = ULPReactBeat,
+        .beatMotion = ULPBeatMotionBounce,
+        .beatSensitivity = 1, .beatInterval = .2f, .beatRelease = .2f,
     };
 }
 
@@ -125,6 +134,17 @@ ULPVisualConfig ULPVisualConfigNormalize(ULPVisualConfig config) {
     config.coverOutlineColor &= 0xFFFFFF;
     config.coverGlow = ULPBound(config.coverGlow, 0, 1);
     config.coverSpin = ULPBound(config.coverSpin, -90, 90);
+    if (config.visualReactType != ULPReactBeat) config.visualReactType = ULPReactRaw;
+    if (config.coverReactType != ULPReactRaw) config.coverReactType = ULPReactBeat;
+    if (config.beatMotion < ULPBeatMotionSwell || config.beatMotion > ULPBeatMotionWobble)
+        config.beatMotion = ULPBeatMotionBounce;
+    config.coverReaction = ULPBound(config.coverReaction, 0, 1);
+    config.beatSensitivity = ULPBound(config.beatSensitivity, .5f, 2);
+    config.beatInterval = ULPBound(config.beatInterval, .12f, .5f);
+    config.beatRelease = ULPBound(config.beatRelease, .08f, .6f);
+    config.coverRumble = ULPBound(config.coverRumble, 0, .2f);
+    config.coverDrift = ULPBound(config.coverDrift, 0, .2f);
+    config.coverGlowPulse = ULPBound(config.coverGlowPulse, 0, 1.5f);
     return config;
 }
 

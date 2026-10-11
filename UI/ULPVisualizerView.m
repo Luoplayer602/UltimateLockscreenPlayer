@@ -37,6 +37,10 @@
     CGRect _trailViewport;
     BOOL _trailUnavailable;
     __weak UIImage *_trailArtwork;
+    ULPBeatState _beat;
+    NSTimer *_reactionTimer;
+    CFTimeInterval _lastReactionTime;
+    float _rawCoverLevel;
 }
 @end
 
@@ -139,6 +143,19 @@ static void ULPAppendClosedWave(UIBezierPath *path, const CGPoint *points,
 }
 
 @implementation ULPVisualizerView
+@synthesize playbackActive = _playbackActive;
+
+- (ULPBeatResult)beatStatus {
+    return (ULPBeatResult){false, false, _beat.pulse, _beat.strength, _beat.score, _beat.count};
+}
+
+- (void)setPlaybackActive:(BOOL)active {
+    if (_playbackActive == active) return;
+    _playbackActive = active;
+    // Re-prime after Pause: the first resumed frame is a baseline, not a kick.
+    ULPBeatReset(&_beat);
+    if (!active) [self startReactionTimerIfNeeded];
+}
 
 - (instancetype)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
@@ -210,6 +227,13 @@ static void ULPAppendClosedWave(UIBezierPath *path, const CGPoint *points,
     BOOL changedCover = visualConfig.mode != _visualConfig.mode ||
                         visualConfig.coverMode != _visualConfig.coverMode;
     BOOL changedMode = visualConfig.mode != _visualConfig.mode || visualConfig.points != _visualConfig.points;
+    if (visualConfig.mode != _visualConfig.mode || visualConfig.enabled != _visualConfig.enabled ||
+        visualConfig.beatSensitivity != _visualConfig.beatSensitivity ||
+        visualConfig.beatInterval != _visualConfig.beatInterval ||
+        visualConfig.visualReactType != _visualConfig.visualReactType) {
+        ULPBeatReset(&_beat);
+        [_cover resetReaction];
+    }
     if (changedMode || visualConfig.trailEnabled != _visualConfig.trailEnabled ||
         visualConfig.enabled != _visualConfig.enabled ||
         visualConfig.colorMode != _visualConfig.colorMode ||
@@ -234,6 +258,7 @@ static void ULPAppendClosedWave(UIBezierPath *path, const CGPoint *points,
     [self updateVisualTransform];
     [self setNeedsLayout];
     [self updateStrokeColor];
+    [self startReactionTimerIfNeeded];
 }
 
 - (void)updateVisualTransform {
@@ -351,13 +376,20 @@ static void ULPAppendClosedWave(UIBezierPath *path, const CGPoint *points,
 }
 
 - (void)updateAudio:(ULPMSH2FeatureFrame)frame zoomLevel:(float)zoomLevel {
+    CFTimeInterval now = CACurrentMediaTime();
+    // Analyze every incoming feature frame, before the drawing FPS limiter.
+    // Both Preview and MSH2 supply DSP64, independent of selected render mode.
+    if (_playbackActive) {
+        ULPBeatResult beat = ULPBeatProcess(&_beat, &frame, now, _visualConfig);
+        if (beat.reset) [_cover resetReaction];
+        if (beat.hit) [_cover triggerBeat:beat.strength atTime:now];
+    } else ULPBeatDecay(&_beat, now, _visualConfig.beatRelease);
     BOOL waveform = _visualConfig.mode == ULPVisualModeWave ||
                     _visualConfig.mode == ULPVisualModeMirror ||
                     _visualConfig.mode == ULPVisualModeSiri ||
                     _visualConfig.mode == ULPVisualModeCircularWave;
     if (!waveform && !(frame.featureMask & ULP_MSH2_SPECTRUM)) return;
-    CFTimeInterval now = CACurrentMediaTime();
-    if (now - _lastFrameTime + 0.002 < 1.0 / _visualConfig.framesPerSecond) return;
+    if (now - _lastFrameTime + 0.002 < 1.0 / [self drawingFramesPerSecond]) return;
     CGFloat dt = _lastFrameTime > 0 ? MIN(0.1, now - _lastFrameTime) : 1.0 / 60;
     _lastFrameTime = now;
     CGFloat side = CGRectGetWidth(_visualContainer.bounds);
@@ -662,17 +694,81 @@ static void ULPAppendClosedWave(UIBezierPath *path, const CGPoint *points,
         _siriMiddleStroke.lineWidth = _visualLayer.lineWidth;
     }
     _visualLayer.shadowOpacity = _visualConfig.glow;
-    CGFloat targetZoom = 1 + ULPClampLevel(zoomLevel) * _visualConfig.zoomStrength;
+    float reaction = _visualConfig.visualReactType == ULPReactBeat ? _beat.pulse : zoomLevel;
+    CGFloat targetZoom = 1 + ULPClampLevel(reaction) * _visualConfig.zoomStrength;
     CGFloat response = 1 - pow(1 - (targetZoom > _zoom ? 0.52 : 0.19), dt * 60);
     _zoom += (targetZoom - _zoom) * response;
     [self updateVisualTransform];
     [CATransaction commit];
     if (_playbackActive) [_cover advanceSpinBy:dt];
+    [self updateCoverReactionAtTime:now rawLevel:_playbackActive ? zoomLevel : 0];
+    [self startReactionTimerIfNeeded];
     [self updateTrailAtTime:now capture:YES];
 }
 
 - (void)resetCoverMotion {
     [_cover resetMotion];
+    ULPBeatReset(&_beat);
+    _rawCoverLevel = 0;
+    _lastReactionTime = 0;
+    [_reactionTimer invalidate]; _reactionTimer = nil;
+    [self startReactionTimerIfNeeded];
+}
+
+- (void)clearBeatReaction {
+    [_cover resetReaction];
+    ULPBeatReset(&_beat);
+    _rawCoverLevel = 0; _lastReactionTime = 0;
+    [_reactionTimer invalidate]; _reactionTimer = nil;
+}
+
+- (void)updateCoverReactionAtTime:(CFTimeInterval)now rawLevel:(float)level {
+    double elapsed = _lastReactionTime ? MAX(0, now - _lastReactionTime) : 1.0 / 60;
+    _lastReactionTime = now;
+    level = ULPClampLevel(level);
+    _rawCoverLevel += (level - _rawCoverLevel) * -expm1(-elapsed / (level > _rawCoverLevel ? .04 : .16));
+    if (_rawCoverLevel < .0001) _rawCoverLevel = 0;
+    [_cover updateReactionAtTime:now rawLevel:_rawCoverLevel beatLevel:_beat.pulse];
+}
+
+- (BOOL)hasReactionAtTime:(CFTimeInterval)now {
+    return [_cover hasReactionAtTime:now] ||
+           (_visualConfig.visualReactType == ULPReactBeat && (_beat.pulse > 0 || _zoom > 1.001));
+}
+
+- (NSUInteger)drawingFramesPerSecond {
+    UIScreen *screen = self.window.screen ?: UIScreen.mainScreen;
+    return ULPVisualDrawingFPS(_visualConfig.framesPerSecond, screen.isCaptured);
+}
+
+- (void)startReactionTimerIfNeeded {
+    if (_reactionTimer || !_visualConfig.enabled || self.hidden || !self.window ||
+        ![self hasReactionAtTime:CACurrentMediaTime()]) return;
+    __weak typeof(self) weakSelf = self;
+    _reactionTimer = [NSTimer timerWithTimeInterval:1.0 / 30 repeats:YES block:^(NSTimer *timer) {
+        __strong typeof(weakSelf) self = weakSelf;
+        if (!self) { [timer invalidate]; return; }
+        CFTimeInterval now = CACurrentMediaTime();
+        // Live audio already drives effects. Finish an interrupted motion on
+        // Pause/Preview stop or a stream stall. Drift keeps moving while the
+        // scene is visible, independently of audio; no new hits or Spin.
+        if (now - self->_lastFrameTime > MAX(.08, 2.0 / [self drawingFramesPerSecond])) {
+            ULPBeatDecay(&self->_beat, now, self->_visualConfig.beatRelease);
+            double dt = self->_lastReactionTime ? MAX(0, now - self->_lastReactionTime) : 1.0 / 30;
+            [self updateCoverReactionAtTime:now rawLevel:0];
+            if (self->_visualConfig.visualReactType == ULPReactBeat) {
+                double target = 1 + self->_beat.pulse * self->_visualConfig.zoomStrength;
+                self->_zoom += (target - self->_zoom) * (1 - pow(1 - .19, dt * 60));
+                if (self->_zoom < 1.001 && self->_beat.pulse == 0) self->_zoom = 1;
+                [CATransaction begin]; [CATransaction setDisableActions:YES];
+                [self updateVisualTransform]; [CATransaction commit];
+            }
+        }
+        if (self.hidden || !self.window || ![self hasReactionAtTime:now]) {
+            [timer invalidate]; self->_reactionTimer = nil;
+        }
+    }];
+    [NSRunLoop.mainRunLoop addTimer:_reactionTimer forMode:NSRunLoopCommonModes];
 }
 
 - (void)resetTrail {
@@ -688,12 +784,16 @@ static void ULPAppendClosedWave(UIBezierPath *path, const CGPoint *points,
 
 - (void)setHidden:(BOOL)hidden {
     [super setHidden:hidden];
-    if (hidden) [self resetTrail];
+    [_cover setRenderingSuspended:hidden || !self.window];
+    if (hidden) { [self resetTrail]; [self clearBeatReaction]; }
+    else [self startReactionTimerIfNeeded];
 }
 
 - (void)didMoveToWindow {
     [super didMoveToWindow];
-    if (!self.window) [self resetTrail];
+    [_cover setRenderingSuspended:self.hidden || !self.window];
+    if (!self.window) { [self resetTrail]; [self clearBeatReaction]; }
+    else [self startReactionTimerIfNeeded];
 }
 
 - (BOOL)prepareTrailBitmap {
@@ -789,7 +889,7 @@ static void ULPAppendClosedWave(UIBezierPath *path, const CGPoint *points,
             CFTimeInterval clock = CACurrentMediaTime();
             // Accepted audio frames already update the footprint. Only fade
             // independently after audio/preview updates stop (pause or stall).
-            if (clock - self->_lastFrameTime > MAX(.08, 2.0 / self->_visualConfig.framesPerSecond))
+            if (clock - self->_lastFrameTime > MAX(.08, 2.0 / [self drawingFramesPerSecond]))
                 [self updateTrailAtTime:clock capture:NO];
         }];
         [NSRunLoop.mainRunLoop addTimer:_trailTimer forMode:NSRunLoopCommonModes];
@@ -798,6 +898,7 @@ static void ULPAppendClosedWave(UIBezierPath *path, const CGPoint *points,
 
 - (void)dealloc {
     [_trailTimer invalidate];
+    [_reactionTimer invalidate];
     if (_trailContext) CGContextRelease(_trailContext);
     ULPTrailFree(&_trail);
 }

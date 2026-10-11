@@ -106,3 +106,15 @@ Sau khi đóng Settings giữ bundle cũ, mở lại, chọn Waveform và bật 
 ## Cover — 0.1.0-70
 
 Người dùng đồng ý tiếp tục. Thêm Logo/Artwork/Off, Size, vị trí, Opacity, viền/màu/độ mờ, Glow, Spin liên tục khi phát và Reset riêng của mode. Cover nằm riêng ngoài transform/history của nét visualizer, artwork crop tròn full bleed và fallback Logo. Tests/schema/build đạt; probe UIKit trên iPhone đạt viewport Preview và màn hình khóa, còn chờ nghiệm thu Settings/Apply và phản hồi dùng thực tế. Xem `NATIVE_COVER_CONTRACT.md`. Sau khi nhóm này đạt, triển khai Beat detector với đủ sáu Beat motion đã chốt; Spin liên tục của 70 là điều khiển khác với Beat motion Spin.
+
+## Beat detector và sáu Beat motion — 0.1.0-71
+
+Người dùng đã cài 70, gửi ảnh Cover Artwork trên màn hình khóa và yêu cầu tiếp tục. Ảnh xác nhận hiển thị; không thay nghiệm thu từng điều khiển hoặc hiệu năng lâu dài. Bản 71 thêm chọn Raw/Beat detect cho Zoom và Cover, độ nhạy/interval/release, cường độ Cover và đủ Swell/Flash/Shake/Spin/Bounce/Wobble. Cấu hình mặc định giữ hình/nhịp của 70; chủ động tăng Cover reaction để bật. Detector dùng DSP64 trước smoothing/FPS vẽ, cùng code ở Preview/lockscreen; không thay DSP/server. Xem `NATIVE_BEAT_CONTRACT.md` cho giới hạn onset, cấu hình và các bước nghiệm thu. Sau nhóm này là ổn định và đo tài nguyên với hiệu ứng bật đồng thời.
+
+## Bổ sung hiệu ứng Cover của demo — 0.1.0-72
+
+Người dùng đã nghiệm thu các hiệu ứng 71 bước đầu, vẫn theo dõi dài hạn. Ảnh demo cho thấy còn thiếu Rung nhẹ, Trôi nhẹ và Quầng sáng theo nhạc. Bổ sung ba điều khiển/mã xử lý chung ở Preview và màn hình khóa; Xoay liên tục đã có từ 70. Giá trị mới mặc định 0, độc lập với Cover reaction, lưu riêng từng mode và nằm trong Reset Cover. Drift chạy khi scene hiển thị kể cả Pause; timer dừng khi ẩn/rời window/rời trang Preview. Detector và sáu Beat motion giữ làm mốc. Xem `NATIVE_COVER_AMBIENT_CONTRACT.md`; sau nghiệm thu tiếp tục đo tài nguyên/ổn định khi bật nhiều hiệu ứng.
+
+## Giảm tải khi chạy hiệu ứng và quay màn hình — 0.1.0-73
+
+Người dùng làm rõ máy chỉ hơi ấm, chấp nhận được; vấn đề chính là cảm giác đôi lúc tụt FPS và giật khi quay màn hình. Ưu tiên cache quầng sáng ngoài Cover và giới hạn FPS vẽ 30 khi capture, giữ lấy mẫu Beat 60 Hz và cấu hình đã lưu. Bản này tập trung hiệu năng, vẫn theo dõi ổn định dài hạn; xem `NATIVE_VISUAL_PERFORMANCE_CONTRACT.md` cho số đo CPU có giới hạn và các bước nghiệm thu thực tế.

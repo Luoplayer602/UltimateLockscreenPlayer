@@ -11,6 +11,7 @@ UltimateLockscreenPlayer_FRAMEWORKS = UIKit CoreImage AVFoundation
 UltimateLockscreenPlayer_FILES += Visualization/ULPStyle.c
 UltimateLockscreenPlayer_FILES += Visualization/ULPTrail.c
 UltimateLockscreenPlayer_FILES += Visualization/ULPCover.c UI/ULPCoverView.m
+UltimateLockscreenPlayer_FILES += Visualization/ULPBeat.c
 UltimateLockscreenPlayer_FILES += Playback/ULPArtworkProvider.m Playback/ULPArtworkRequest.c
 
 include $(THEOS_MAKE_PATH)/tweak.mk

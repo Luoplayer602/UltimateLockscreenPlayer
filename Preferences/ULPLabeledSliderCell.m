@@ -39,7 +39,9 @@
 
 - (void)updateValueLabel {
     BOOL integer = [[self.specifier propertyForKey:@"ulpInteger"] boolValue];
-    _valueLabel.text = [NSString stringWithFormat:integer ? @"%.0f" : @"%.2f", _slider.value];
+    NSNumber *precision = [self.specifier propertyForKey:@"ulpDecimals"];
+    int decimals = integer ? 0 : precision ? MAX(0, MIN(3, precision.intValue)) : 2;
+    _valueLabel.text = [NSString stringWithFormat:@"%.*f", decimals, _slider.value];
     _slider.accessibilityValue = _valueLabel.text;
 }
 

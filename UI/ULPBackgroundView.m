@@ -1,6 +1,7 @@
 #import "ULPBackgroundView.h"
 
 #import <CoreImage/CoreImage.h>
+#import <QuartzCore/QuartzCore.h>
 #import <math.h>
 #import "ULPStyleColors.h"
 #import "ULPArtworkImage.h"
@@ -14,6 +15,7 @@
     UIImage *_sourceArtwork;
     CIContext *_imageContext;
     float _zoom;
+    CFTimeInterval _lastZoomTime;
     UIPanGestureRecognizer *_swipeRecognizer;
     BOOL _swipeActive;
 }
@@ -85,6 +87,7 @@
     [self.layer removeAllAnimations];
     _swipeActive = NO;
     self.transform = CGAffineTransformIdentity;
+    _lastZoomTime = 0;
 }
 - (instancetype)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
@@ -210,8 +213,16 @@
 
 - (void)setZoomLevel:(float)level {
     if (!isfinite(level)) return;
+    CFTimeInterval now = CACurrentMediaTime();
+    UIScreen *screen = self.window.screen ?: UIScreen.mainScreen;
+    // Keep the existing 60 Hz background outside capture. Recording/mirroring
+    // shares the 30 FPS limit with the visualizer, without changing its gain.
+    NSUInteger fps = ULPVisualDrawingFPS(60, screen.isCaptured);
+    if (_lastZoomTime && now - _lastZoomTime + .002 < 1.0 / fps) return;
+    double dt = _lastZoomTime ? MIN(.1, MAX(0, now - _lastZoomTime)) : 1.0 / 60;
+    _lastZoomTime = now;
     float target = 1 + fminf(1, fmaxf(0, level)) * 0.08f;
-    _zoom = _zoom > 0 ? _zoom + (target - _zoom) * 0.35f : target;
+    _zoom = _zoom > 0 ? _zoom + (target - _zoom) * (1 - pow(.65, dt * 60)) : target;
     [self applyArtworkZoom];
 }
 

@@ -897,6 +897,18 @@ static void ULPDiagnosticLog(NSString *message) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 if (gLifecycle.presentation == ULPPlaybackPlaying && gVisualizer && !gVisualizer.hidden)
                     [gVisualizer updateAudio:frame zoomLevel:zoom];
+                static CFTimeInterval lastBeatLog;
+                CFTimeInterval beatClock = CACurrentMediaTime();
+                ULPVisualConfig c = gVisualizer.visualConfig;
+                if (gLifecycle.presentation == ULPPlaybackPlaying && gVisualizer && !gVisualizer.hidden &&
+                    (c.visualReactType == ULPReactBeat || (c.coverReactType == ULPReactBeat &&
+                        (c.coverReaction > 0 || c.coverGlowPulse > 0))) &&
+                    beatClock - lastBeatLog >= 2) {
+                    lastBeatLog = beatClock;
+                    ULPBeatResult beat = gVisualizer.beatStatus;
+                    ULPDiagnosticLog([NSString stringWithFormat:@"Beat count=%llu pulse=%.3f score=%.3f motion=%d coverReaction=%.2f",
+                        (unsigned long long)beat.count, beat.pulse, beat.score, c.beatMotion, c.coverReaction]);
+                }
                 if (gLifecycle.presentation == ULPPlaybackPlaying && gBackground && !gBackground.hidden)
                     [gBackground setZoomLevel:zoom];
                 if (gLifecycle.presentation == ULPPlaybackPlaying && gFixedBackground && !gFixedBackground.hidden)

@@ -2,10 +2,12 @@
 
 #import "../Audio/MSH2Protocol.h"
 #import "../Visualization/ULPVisualConfig.h"
+#import "../Visualization/ULPBeat.h"
 
 @interface ULPVisualizerView : UIView
 @property (nonatomic) ULPVisualConfig visualConfig;
 @property (nonatomic) BOOL playbackActive;
+@property (nonatomic, readonly) ULPBeatResult beatStatus;
 - (void)setArtwork:(UIImage *)artwork manualColor:(UIColor *)manualColor;
 - (void)updateAudio:(ULPMSH2FeatureFrame)frame zoomLevel:(float)zoomLevel;
 - (BOOL)hasUnsettledPeakCaps;

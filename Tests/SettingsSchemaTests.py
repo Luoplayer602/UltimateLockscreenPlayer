@@ -30,6 +30,9 @@ for mode in range(12):
         for dependency in ('ulpDependsOn', 'ulpDisabledBy'):
             if dependency in item:
                 assert item[dependency] in keys, f'Missing source: {mode} {item}'
+        for source_key, allowed in item.get('ulpRequirements', {}).items():
+            source = next(x for x in visible if x.get('key') == source_key)
+            assert set(allowed) <= set(source['validValues'])
         if item['cell'] == 'PSSliderCell':
             assert item['min'] <= item['default'] <= item['max'], item
         if item['cell'] == 'PSLinkListCell':
@@ -54,7 +57,8 @@ for mode in range(12):
     cover = {item['key']: item for item in visible if item.get('key', '').startswith('Cover')}
     assert set(cover) == {'CoverMode', 'CoverSize', 'CoverX', 'CoverY', 'CoverOpacity',
                         'CoverOutlineThickness', 'CoverOutlineColor', 'CoverOutlineOpacity',
-                        'CoverGlow', 'CoverSpin'}
+                        'CoverGlow', 'CoverSpin', 'CoverReactType', 'CoverReaction',
+                        'CoverRumble', 'CoverDrift', 'CoverGlowPulse'}
     assert cover['CoverMode']['ulpDefaultByMode'][str(mode)] == (0 if mode in (0,3,6,10,11) else 2)
     for key, item in cover.items():
         if key != 'CoverMode':
@@ -63,6 +67,19 @@ for mode in range(12):
     assert cover['CoverSpin']['default'] == 0
     assert cover['CoverMode']['validValues'] == [0,1,2]
     assert cover['CoverMode']['validTitles'] == ['Logo','Artwork','Off']
+    by_key = {item['key']: item for item in visible if 'key' in item}
+    assert by_key['VisualReactType']['validTitles'] == ['Raw','Beat detect']
+    assert by_key['CoverReactType']['validTitles'] == ['Raw','Beat detect']
+    assert by_key['CoverReaction']['default'] == 0
+    assert by_key['BeatMotion']['validTitles'] == ['Swell','Flash','Shake','Spin','Bounce','Wobble']
+    assert by_key['BeatMotion']['ulpRequirements'] == {'CoverMode':[0,1], 'CoverReactType':[1]}
+    assert by_key['BeatSensitivity']['default'] == 1
+    for key, limit in (('CoverRumble', .2), ('CoverDrift', .2), ('CoverGlowPulse', 1.5)):
+        assert by_key[key]['default'] == 0 and by_key[key]['min'] == 0 and by_key[key]['max'] == limit
+        assert by_key[key]['height'] >= 91, 'Help text must fit below the slider'
+    assert by_key['CoverRumble']['ulpDecimals'] == by_key['CoverDrift']['ulpDecimals'] == 3
+    ordered = ['BeatMotion','CoverRumble','CoverDrift','CoverGlowPulse','CoverSpin']
+    assert [keys.index(key) for key in ordered] == sorted(keys.index(key) for key in ordered)
     for item in visible:
         if 'ulpDefaultByMode' in item:
             assert set(item['ulpDefaultByMode']) == {str(i) for i in range(12)}

@@ -51,6 +51,8 @@ typedef Boolean (*ULPSendCommand)(NSInteger, NSDictionary *);
     [super viewDidLoad];
     [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(clearPreviewTrail:)
         name:UIApplicationDidEnterBackgroundNotification object:nil];
+    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(screenCaptureChanged:)
+        name:UIScreenCapturedDidChangeNotification object:nil];
     self.title = @"Preview";
     self.view.backgroundColor = self.compact ? UIColor.clearColor :
         [UIColor colorWithRed:0.06 green:0.07 blue:0.10 alpha:1];
@@ -160,7 +162,7 @@ typedef Boolean (*ULPSendCommand)(NSInteger, NSDictionary *);
     [self refreshVisualPreferences];
     if (!_displayLink) {
         _displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(displayTick)];
-        _displayLink.preferredFramesPerSecond = _config.framesPerSecond;
+        [self refreshPreviewFrameRate];
         [_displayLink addToRunLoop:NSRunLoop.mainRunLoop forMode:NSRunLoopCommonModes];
     }
 }
@@ -172,6 +174,7 @@ typedef Boolean (*ULPSendCommand)(NSInteger, NSDictionary *);
 
 - (void)stopPreviewRendering {
     [self stopPreview];
+    _visualizer.hidden = YES; // Also suspend idle Drift on a covered Settings page.
     [_visualizer resetTrail];
     [_displayLink invalidate];
     _displayLink = nil;
@@ -192,6 +195,18 @@ typedef Boolean (*ULPSendCommand)(NSInteger, NSDictionary *);
     [_visualizer resetCoverMotion];
 }
 
+- (void)refreshPreviewFrameRate {
+    UIScreen *screen = self.view.window.screen ?: UIScreen.mainScreen;
+    // Beat analysis runs before the renderer's capture/drawing gate.
+    BOOL beat = _config.visualReactType == ULPReactBeat ||
+        (_config.coverReactType == ULPReactBeat && (_config.coverReaction > 0 || _config.coverGlowPulse > 0));
+    _displayLink.preferredFramesPerSecond = beat ? 60 : ULPVisualDrawingFPS(_config.framesPerSecond, screen.isCaptured);
+}
+
+- (void)screenCaptureChanged:(NSNotification *)notification {
+    [self refreshPreviewFrameRate];
+}
+
 - (void)refreshVisualPreferences {
     _config = ULPLoadVisualPreferences();
     _signal.visual.firstBand = _config.firstBand;
@@ -202,7 +217,8 @@ typedef Boolean (*ULPSendCommand)(NSInteger, NSDictionary *);
     _previewBackground.visualConfig = _config;
     [_visualizer setArtwork:_previewArtwork manualColor:ULPLoadVisualManualColor()];
     _visualizer.hidden = !_config.enabled;
-    _displayLink.preferredFramesPerSecond = _config.framesPerSecond;
+    // Keep analysis at 60 Hz for Beat detect even if drawing is limited to 15.
+    [self refreshPreviewFrameRate];
     _lastPreferenceRead = CACurrentMediaTime();
     // Capture real artwork before Preview pauses the external player. Keep it
     // through sample playback so changing background styles is reviewable.

@@ -16,6 +16,7 @@ ULPPreferences_FRAMEWORKS = UIKit AVFoundation
 ULPPreferences_FILES += ../Audio/ULPPreviewSpectrum.c
 ULPPreferences_FILES += ../Visualization/ULPTrail.c
 ULPPreferences_FILES += ../Visualization/ULPCover.c ../UI/ULPCoverView.m
+ULPPreferences_FILES += ../Visualization/ULPBeat.c
 ULPPreferences_FILES += ../UI/ULPBackgroundView.m ../Visualization/ULPStyle.c ULPColorCell.m ULPStylePickerController.m
 ULPPreferences_FRAMEWORKS += CoreImage
 ULPPreferences_PRIVATE_FRAMEWORKS = Preferences

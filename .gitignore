@@ -12,6 +12,7 @@ Tests/StyleTests
 Tests/ArtworkRequestTests
 Tests/TrailTests
 Tests/CoverTests
+Tests/BeatTests
 *.deb
 *.dylib
 *.o

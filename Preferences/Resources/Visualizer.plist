@@ -2602,7 +2602,7 @@
 			<key>id</key>
 			<string>cover.group</string>
 			<key>footerText</key>
-			<string>Artwork lấp đầy hình tròn; thiếu ảnh dùng logo ULP. Cover có vị trí, viền và Glow riêng. Spin chỉ xoay ảnh/logo khi phát nhạc.</string>
+			<string>Artwork lấp đầy hình tròn; thiếu ảnh dùng logo ULP. Rung nhẹ theo mức âm; Trôi nhẹ vẫn chạy khi Pause. Quầng sáng theo nguồn Raw/Beat detect. Spin xoay ảnh/logo khi phát.</string>
 		</dict>
 		<dict>
 			<key>defaults</key>
@@ -2916,6 +2916,247 @@
 			</array>
 		</dict>
 		<dict>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
+			<key>label</key>
+			<string>React to beat type</string>
+			<key>key</key>
+			<string>CoverReactType</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<integer>1</integer>
+			<key>id</key>
+			<string>beat.CoverReactType</string>
+			<key>detail</key>
+			<string>ULPStylePickerController</string>
+			<key>validTitles</key>
+			<array>
+				<string>Raw</string>
+				<string>Beat detect</string>
+			</array>
+			<key>validValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+			</array>
+			<key>ulpChoiceTitles</key>
+			<array>
+				<string>Raw</string>
+				<string>Beat detect</string>
+			</array>
+			<key>ulpChoiceValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+			</array>
+			<key>ulpDependsOn</key>
+			<string>CoverMode</string>
+			<key>ulpEnabledValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+			</array>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>label</key>
+			<string>React to beat</string>
+			<key>key</key>
+			<string>CoverReaction</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<real>0.0</real>
+			<key>id</key>
+			<string>beat.CoverReaction</string>
+			<key>cellClass</key>
+			<string>ULPLabeledSliderCell</string>
+			<key>height</key>
+			<integer>68</integer>
+			<key>min</key>
+			<real>0.0</real>
+			<key>max</key>
+			<real>1.0</real>
+			<key>showValue</key>
+			<true/>
+			<key>ulpDependsOn</key>
+			<string>CoverMode</string>
+			<key>ulpEnabledValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+			</array>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
+			<key>label</key>
+			<string>Beat motion</string>
+			<key>key</key>
+			<string>BeatMotion</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<integer>4</integer>
+			<key>id</key>
+			<string>beat.BeatMotion</string>
+			<key>detail</key>
+			<string>ULPStylePickerController</string>
+			<key>validTitles</key>
+			<array>
+				<string>Swell</string>
+				<string>Flash</string>
+				<string>Shake</string>
+				<string>Spin</string>
+				<string>Bounce</string>
+				<string>Wobble</string>
+			</array>
+			<key>validValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+				<integer>2</integer>
+				<integer>3</integer>
+				<integer>4</integer>
+				<integer>5</integer>
+			</array>
+			<key>ulpChoiceTitles</key>
+			<array>
+				<string>Swell</string>
+				<string>Flash</string>
+				<string>Shake</string>
+				<string>Spin</string>
+				<string>Bounce</string>
+				<string>Wobble</string>
+			</array>
+			<key>ulpChoiceValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+				<integer>2</integer>
+				<integer>3</integer>
+				<integer>4</integer>
+				<integer>5</integer>
+			</array>
+			<key>ulpRequirements</key>
+			<dict>
+				<key>CoverMode</key>
+				<array>
+					<integer>0</integer>
+					<integer>1</integer>
+				</array>
+				<key>CoverReactType</key>
+				<array>
+					<integer>1</integer>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>label</key>
+			<string>Rung nhẹ</string>
+			<key>key</key>
+			<string>CoverRumble</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<real>0.0</real>
+			<key>id</key>
+			<string>cover.CoverRumble</string>
+			<key>cellClass</key>
+			<string>ULPLabeledSliderCell</string>
+			<key>height</key>
+			<integer>96</integer>
+			<key>min</key>
+			<integer>0</integer>
+			<key>max</key>
+			<real>0.2</real>
+			<key>showValue</key>
+			<true/>
+			<key>ulpHelp</key>
+			<string>Rung theo mức âm; giảm về đứng yên khi không có âm thanh.</string>
+			<key>ulpDependsOn</key>
+			<string>CoverMode</string>
+			<key>ulpEnabledValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+			</array>
+			<key>ulpDecimals</key>
+			<integer>3</integer>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>label</key>
+			<string>Trôi nhẹ</string>
+			<key>key</key>
+			<string>CoverDrift</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<real>0.0</real>
+			<key>id</key>
+			<string>cover.CoverDrift</string>
+			<key>cellClass</key>
+			<string>ULPLabeledSliderCell</string>
+			<key>height</key>
+			<integer>96</integer>
+			<key>min</key>
+			<integer>0</integer>
+			<key>max</key>
+			<real>0.2</real>
+			<key>showValue</key>
+			<true/>
+			<key>ulpHelp</key>
+			<string>Di chuyển chậm khi màn hình này đang hiển thị, kể cả Pause.</string>
+			<key>ulpDependsOn</key>
+			<string>CoverMode</string>
+			<key>ulpEnabledValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+			</array>
+			<key>ulpDecimals</key>
+			<integer>3</integer>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>label</key>
+			<string>Quầng sáng theo nhạc</string>
+			<key>key</key>
+			<string>CoverGlowPulse</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<real>0.0</real>
+			<key>id</key>
+			<string>cover.CoverGlowPulse</string>
+			<key>cellClass</key>
+			<string>ULPLabeledSliderCell</string>
+			<key>height</key>
+			<integer>96</integer>
+			<key>min</key>
+			<integer>0</integer>
+			<key>max</key>
+			<real>1.5</real>
+			<key>showValue</key>
+			<true/>
+			<key>ulpHelp</key>
+			<string>Tăng quầng sáng ngoài Cover theo nguồn Raw hoặc Beat detect.</string>
+			<key>ulpDependsOn</key>
+			<string>CoverMode</string>
+			<key>ulpEnabledValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+			</array>
+		</dict>
+		<dict>
 			<key>defaults</key>
 			<string>com.luoplayer.ultimatelockscreenplayer</string>
 			<key>cell</key>
@@ -2962,9 +3203,45 @@
 			<key>label</key>
 			<string>ZOOM</string>
 			<key>footerText</key>
-			<string>Zoom đọc dải âm riêng. Scale thay đổi kích thước cơ sở; Zoom làm visualizer nảy theo âm thanh.</string>
+			<string>Raw giữ Zoom theo mức âm của dải đã chọn; Beat detect Zoom theo các nhịp bắt được. Scale là kích thước cơ sở.</string>
 			<key>id</key>
 			<string>ulp.ZOOM</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
+			<key>label</key>
+			<string>React to beat type</string>
+			<key>key</key>
+			<string>VisualReactType</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<integer>0</integer>
+			<key>id</key>
+			<string>beat.VisualReactType</string>
+			<key>detail</key>
+			<string>ULPStylePickerController</string>
+			<key>validTitles</key>
+			<array>
+				<string>Raw</string>
+				<string>Beat detect</string>
+			</array>
+			<key>validValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+			</array>
+			<key>ulpChoiceTitles</key>
+			<array>
+				<string>Raw</string>
+				<string>Beat detect</string>
+			</array>
+			<key>ulpChoiceValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+			</array>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -3015,6 +3292,12 @@
 			<true/>
 			<key>id</key>
 			<string>ulp.ZoomFirstBand</string>
+			<key>ulpDependsOn</key>
+			<string>VisualReactType</string>
+			<key>ulpEnabledValues</key>
+			<array>
+				<integer>0</integer>
+			</array>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -3041,6 +3324,94 @@
 			<true/>
 			<key>id</key>
 			<string>ulp.ZoomLastBand</string>
+			<key>ulpDependsOn</key>
+			<string>VisualReactType</string>
+			<key>ulpEnabledValues</key>
+			<array>
+				<integer>0</integer>
+			</array>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>BEAT DETECTOR</string>
+			<key>id</key>
+			<string>beat.group</string>
+			<key>footerText</key>
+			<string>Bắt điểm tấn công từ phổ âm thanh hiện tại; không tạo nhịp BPM giả. Dùng chung cho Visualizer và Cover khi chọn Beat detect. Khoảng cách tối thiểu chặn nhịp trùng; Release chỉnh nhả Zoom, Beat motion có thời gian riêng.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>label</key>
+			<string>Beat sensitivity</string>
+			<key>key</key>
+			<string>BeatSensitivity</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<real>1.0</real>
+			<key>id</key>
+			<string>beat.BeatSensitivity</string>
+			<key>cellClass</key>
+			<string>ULPLabeledSliderCell</string>
+			<key>height</key>
+			<integer>68</integer>
+			<key>min</key>
+			<real>0.5</real>
+			<key>max</key>
+			<real>2.0</real>
+			<key>showValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>label</key>
+			<string>Minimum beat interval · s</string>
+			<key>key</key>
+			<string>BeatInterval</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<real>0.2</real>
+			<key>id</key>
+			<string>beat.BeatInterval</string>
+			<key>cellClass</key>
+			<string>ULPLabeledSliderCell</string>
+			<key>height</key>
+			<integer>68</integer>
+			<key>min</key>
+			<real>0.12</real>
+			<key>max</key>
+			<real>0.5</real>
+			<key>showValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>label</key>
+			<string>Beat release · s</string>
+			<key>key</key>
+			<string>BeatRelease</string>
+			<key>defaults</key>
+			<string>com.luoplayer.ultimatelockscreenplayer</string>
+			<key>default</key>
+			<real>0.2</real>
+			<key>id</key>
+			<string>beat.BeatRelease</string>
+			<key>cellClass</key>
+			<string>ULPLabeledSliderCell</string>
+			<key>height</key>
+			<integer>68</integer>
+			<key>min</key>
+			<real>0.08</real>
+			<key>max</key>
+			<real>0.6</real>
+			<key>showValue</key>
+			<true/>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -3048,7 +3419,7 @@
 			<key>label</key>
 			<string>AUDIO &amp; PERFORMANCE</string>
 			<key>footerText</key>
-			<string>Preview cập nhật khi chỉnh; Apply áp dụng trên màn hình khóa.</string>
+			<string>Preview cập nhật khi chỉnh; Apply áp dụng trên màn hình khóa. Khi quay hoặc phản chiếu màn hình, hiệu ứng vẽ tối đa 30 FPS để giảm tải; Beat detect vẫn lấy mẫu 60 lần/giây.</string>
 			<key>id</key>
 			<string>ulp.AUDIO &amp; PERFORMANCE</string>
 		</dict>

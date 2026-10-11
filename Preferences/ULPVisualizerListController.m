@@ -237,10 +237,28 @@
 }
 
 - (void)updateDependencies:(BOOL)reload {
+    CGPoint offset = reload ? [self settingsTable].contentOffset : CGPointZero;
+    BOOL changed = NO;
     for (PSSpecifier *dependent in _specifiers) {
+        NSDictionary *requirements = [dependent propertyForKey:@"ulpRequirements"];
         NSString *key = [dependent propertyForKey:@"ulpDependsOn"];
         BOOL inverse = NO;
         if (!key) { key = [dependent propertyForKey:@"ulpDisabledBy"]; inverse = YES; }
+        if (requirements) {
+            BOOL enabled = YES;
+            for (NSString *required in requirements) {
+                PSSpecifier *source = nil;
+                for (PSSpecifier *candidate in _specifiers)
+                    if ([[candidate propertyForKey:@"ulpOriginalKey"] isEqualToString:required]) { source = candidate; break; }
+                enabled = enabled && source && [requirements[required] containsObject:[self readPreferenceValue:source]];
+            }
+            if (![[dependent propertyForKey:@"enabled"] isEqual:@(enabled)]) {
+                [dependent setProperty:@(enabled) forKey:@"enabled"];
+                if (reload) [self reloadSpecifier:dependent animated:NO];
+                changed = YES;
+            }
+            continue;
+        }
         if (!key) continue;
         for (PSSpecifier *source in _specifiers) {
             if (![[source propertyForKey:@"ulpOriginalKey"] isEqualToString:key]) continue;
@@ -251,9 +269,14 @@
             if (![[dependent propertyForKey:@"enabled"] isEqual:@(enabled)]) {
                 [dependent setProperty:@(enabled) forKey:@"enabled"];
                 if (reload) [self reloadSpecifier:dependent animated:NO];
+                changed = YES;
             }
             break;
         }
+    }
+    if (reload && changed) {
+        [[self settingsTable] layoutIfNeeded];
+        [[self settingsTable] setContentOffset:offset animated:NO];
     }
 }
 
@@ -273,7 +296,8 @@
 
 - (void)resetCover {
     for (NSString *key in @[@"CoverMode", @"CoverSize", @"CoverX", @"CoverY", @"CoverOpacity",
-        @"CoverOutlineThickness", @"CoverOutlineColor", @"CoverOutlineOpacity", @"CoverGlow", @"CoverSpin"])
+        @"CoverOutlineThickness", @"CoverOutlineColor", @"CoverOutlineOpacity", @"CoverGlow", @"CoverSpin",
+        @"CoverReactType", @"CoverReaction", @"BeatMotion", @"CoverRumble", @"CoverDrift", @"CoverGlowPulse"])
         CFPreferencesSetAppValue((__bridge CFStringRef)ULPVisualPreferenceKey(key, _loadedMode),
             NULL, CFSTR("com.luoplayer.ultimatelockscreenplayer"));
     CFPreferencesAppSynchronize(CFSTR("com.luoplayer.ultimatelockscreenplayer"));

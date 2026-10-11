@@ -8,6 +8,13 @@
 int main(void) {
     ULPVisualConfig defaults = ULPVisualConfigDefault();
     assert(defaults.enabled && defaults.points == 64 && defaults.framesPerSecond == 60);
+    assert(ULPVisualDrawingFPS(60, false) == 60);
+    assert(ULPVisualDrawingFPS(60, true) == 30);
+    assert(ULPVisualDrawingFPS(30, true) == 30);
+    assert(ULPVisualDrawingFPS(24, true) == 24);
+    assert(ULPVisualDrawingFPS(15, true) == 15);
+    assert(ULPVisualDrawingFPS(0, true) == 15);
+    assert(ULPVisualDrawingFPS(255, false) == 60);
     assert(defaults.firstBand == 0 && defaults.lastBand == 63);
     assert(defaults.symmetry == ULPSymmetryVertical);
     assert(defaults.mode == ULPVisualModeCircle);
@@ -18,6 +25,10 @@ int main(void) {
     assert(defaults.coverMode == ULPCoverModeLogo && defaults.coverSize == .44f);
     assert(defaults.coverOpacity == 1 && defaults.coverOutlineThickness == 3);
     assert(defaults.coverOutlineColor == 0xFFFFFF && defaults.coverSpin == 0);
+    assert(defaults.coverReaction == 0 && defaults.visualReactType == ULPReactRaw);
+    assert(defaults.coverReactType == ULPReactBeat && defaults.beatMotion == ULPBeatMotionBounce);
+    assert(defaults.beatSensitivity == 1 && defaults.beatInterval == .2f && defaults.beatRelease == .2f);
+    assert(defaults.coverRumble == 0 && defaults.coverDrift == 0 && defaults.coverGlowPulse == 0);
     assert(ULPVisualModeForPreset(ULPVisualPresetSpectrumBars) == ULPVisualModeBar);
     assert(ULPVisualModeForPreset(ULPVisualPresetSiriFlow) == ULPVisualModeSiri);
 
@@ -46,6 +57,10 @@ int main(void) {
     invalid.coverOutlineThickness = -1; invalid.coverOutlineOpacity = 3;
     invalid.coverGlow = INFINITY; invalid.coverSpin = -200;
     invalid.coverOutlineColor = 0xFF112233;
+    invalid.visualReactType = (ULPReactType)99; invalid.coverReactType = (ULPReactType)-1;
+    invalid.beatMotion = (ULPBeatMotionType)99; invalid.coverReaction = INFINITY;
+    invalid.beatSensitivity = -1; invalid.beatInterval = 9; invalid.beatRelease = NAN;
+    invalid.coverRumble = 5; invalid.coverDrift = INFINITY; invalid.coverGlowPulse = 9;
     invalid = ULPVisualConfigNormalize(invalid);
     assert(invalid.points == 12 && invalid.framesPerSecond == 15);
     assert(invalid.firstBand == 50 && invalid.lastBand == 50);
@@ -61,11 +76,16 @@ int main(void) {
     assert(invalid.coverOutlineThickness == 0 && invalid.coverOutlineOpacity == 1);
     assert(invalid.coverGlow == 0 && invalid.coverSpin == -90);
     assert(invalid.coverOutlineColor == 0x112233);
+    assert(invalid.visualReactType == ULPReactRaw && invalid.coverReactType == ULPReactBeat);
+    assert(invalid.beatMotion == ULPBeatMotionBounce && invalid.coverReaction == 0);
+    assert(invalid.beatSensitivity == .5f && invalid.beatInterval == .5f && invalid.beatRelease == .08f);
+    assert(invalid.coverRumble == .2f && invalid.coverDrift == 0 && invalid.coverGlowPulse == 1.5f);
 
     // Distinct stable storage IDs must survive adding new modes.
     for (int mode = 0; mode <= ULPVisualModeSmoothSpectro; ++mode) {
         ULPVisualConfig c = ULPVisualConfigDefaultForMode((ULPVisualMode)mode);
         assert(c.mode == (ULPVisualMode)mode);
+        assert(c.coverRumble == 0 && c.coverDrift == 0 && c.coverGlowPulse == 0);
         bool radialCover = mode == 0 || mode == 3 || mode == 6 || mode == 10 || mode == 11;
         assert(c.coverMode == (radialCover ? ULPCoverModeLogo : ULPCoverModeOff));
         for (int other = mode + 1; other <= ULPVisualModeSmoothSpectro; ++other)
